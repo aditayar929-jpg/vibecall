@@ -83,7 +83,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     onTap: () {
                       showCountryPicker(
                         context: context,
-                        onSelect: (c) => setState(() => _selectedCountry = '${c.flag} +${c.phoneCode}'),
+                        onSelect: (c) => setState(() => _selectedCountry = '${c.name} +${c.phoneCode}'),
                       );
                     },
                     child: Container(

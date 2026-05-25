@@ -441,27 +441,6 @@ class FirestoreService {
     return coins >= amount;
   }
 
-  // ─── Matching Queue ──────────────────────────────────────────────
-
-  Future<void> addToMatchingQueue({
-    String genderFilter = 'All',
-    int minAge = 18,
-    int maxAge = 35,
-  }) async {
-    await _firestore.collection('matching_queue').doc(_uid).set({
-      'uid': _uid,
-      'genderFilter': genderFilter,
-      'minAge': minAge,
-      'maxAge': maxAge,
-      'timestamp': FieldValue.serverTimestamp(),
-      'status': 'waiting',
-    });
-  }
-
-  Future<void> removeFromMatchingQueue() async {
-    await _firestore.collection('matching_queue').doc(_uid).delete();
-  }
-
   // ─── Report / Block ──────────────────────────────────────────────
 
   Future<void> reportUser(String targetUid, String reason) async {
