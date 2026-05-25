@@ -1,0 +1,2 @@
+PLACEHOLDER: Replace with actual launcher icon (72x72 px)
+To generate launcher icons, use: flutter pub run flutter_launcher_icons

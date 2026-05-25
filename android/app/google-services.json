@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "737125569121",
+    "firebase_url": "https://vibecall-524e2-default-rtdb.firebaseio.com",
+    "project_id": "vibecall-524e2",
+    "storage_bucket": "vibecall-524e2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:737125569121:android:42e4d895ccf227f1e51020",
+        "android_client_info": {
+          "package_name": "com.vibecall.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "737125569121-09raphqgbt2h6p9nvksh9l1r2lsfbuvm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAplllPz9sZLAW_0PfNYQEbg6nL-z4_BJ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "737125569121-09raphqgbt2h6p9nvksh9l1r2lsfbuvm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
