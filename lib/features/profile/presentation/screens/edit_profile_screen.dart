@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../shared/services/firestore_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -13,12 +16,64 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _nameController = TextEditingController(text: 'Alex Johnson');
-  final _bioController = TextEditingController(text: 'Adventure seeker & coffee lover ☕');
-  final _ageController = TextEditingController(text: '24');
+  final _nameController = TextEditingController();
+  final _bioController = TextEditingController();
+  final _ageController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
   String _selectedGender = 'Male';
-  final List<String> _selectedInterests = ['Travel', 'Music', 'Photography', 'Coffee'];
-  final List<String> _photos = List.filled(6, '');
+  List<String> _selectedInterests = [];
+  List<String> _photos = [];
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final data = await _firestoreService.getUserData(uid);
+    if (data != null && mounted) {
+      setState(() {
+        _nameController.text = data['name'] ?? '';
+        _bioController.text = data['bio'] ?? '';
+        _ageController.text = (data['age'] ?? '').toString();
+        _selectedGender = data['gender'] ?? 'Male';
+        _selectedInterests = List<String>.from(data['interests'] ?? []);
+        _photos = List<String>.from(data['photos'] ?? []);
+        _isLoading = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _isSaving = true);
+    try {
+      await _firestoreService.updateProfile(
+        name: _nameController.text.trim(),
+        bio: _bioController.text.trim(),
+        gender: _selectedGender,
+        age: int.tryParse(_ageController.text.trim()),
+        interests: _selectedInterests,
+      );
+      if (mounted) {
+        HapticFeedback.lightImpact();
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e'), backgroundColor: AppColors.errorRed),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -39,11 +94,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Text('Edit Profile'),
         actions: [
           TextButton(
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              context.pop();
-            },
-            child: const Text('Save', style: TextStyle(color: AppColors.neonPink, fontWeight: FontWeight.w600)),
+            onPressed: _isSaving ? null : _saveProfile,
+            child: _isSaving
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.neonPink))
+                : const Text('Save', style: TextStyle(color: AppColors.neonPink, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -337,10 +391,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    context.pop();
-                  },
+                  onPressed: _isSaving ? null : _saveProfile,
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),

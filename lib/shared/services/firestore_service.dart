@@ -145,11 +145,18 @@ class FirestoreService {
     required int minAge,
     required int maxAge,
   }) async {
+    final myDoc = await _firestore.collection('users').doc(_uid).get();
+    final myData = myDoc.data() ?? {};
+
     await _firestore.collection('matching_queue').doc(_uid).set({
       'uid': _uid,
       'genderFilter': genderFilter,
       'minAge': minAge,
       'maxAge': maxAge,
+      'myGender': myData['gender'] ?? '',
+      'myAge': myData['age'] ?? 0,
+      'myInterests': myData['interests'] ?? [],
+      'myLocation': myData['location'] ?? '',
       'timestamp': FieldValue.serverTimestamp(),
       'status': 'waiting',
     });
@@ -165,6 +172,87 @@ class FirestoreService {
       query = query.where('genderFilter', isEqualTo: genderFilter);
     }
     return query.orderBy('timestamp', descending: true).limit(50).snapshots();
+  }
+
+  // ─── Compatible Matching ────────────────────────────────────────
+
+  Future<Map<String, dynamic>?> findCompatibleMatch({
+    required String genderFilter,
+    required int minAge,
+    required int maxAge,
+  }) async {
+    final myDoc = await _firestore.collection('users').doc(_uid).get();
+    final myData = myDoc.data() ?? {};
+    final myGender = myData['gender'] ?? '';
+    final myAge = myData['age'] ?? 0;
+    final myInterests = List<String>.from(myData['interests'] ?? []);
+    final myLocation = myData['location'] ?? '';
+
+    final queueSnap = await _firestore
+        .collection('matching_queue')
+        .where('status', isEqualTo: 'waiting')
+        .limit(50)
+        .get();
+
+    if (queueSnap.docs.isEmpty) return null;
+
+    final candidates = queueSnap.docs
+        .map((doc) => doc.data())
+        .where((entry) => entry['uid'] != _uid)
+        .where((entry) {
+      final theirGenderFilter = entry['genderFilter'] ?? 'All';
+      final theirMinAge = entry['minAge'] ?? 18;
+      final theirMaxAge = entry['maxAge'] ?? 99;
+      final theirGender = entry['myGender'] ?? '';
+      final theirAge = entry['myAge'] ?? 0;
+
+      // Check if they match my preferences
+      if (genderFilter != 'All' && theirGender != genderFilter) return false;
+      if (theirAge < minAge || theirAge > maxAge) return false;
+
+      // Check if I match their preferences
+      if (theirGenderFilter != 'All' && myGender != theirGenderFilter) return false;
+      if (myAge < theirMinAge || myAge > theirMaxAge) return false;
+
+      return true;
+    }).toList();
+
+    if (candidates.isEmpty) return null;
+
+    // Score by shared interests and same location
+    candidates.sort((a, b) {
+      final aInterests = List<String>.from(a['myInterests'] ?? []);
+      final bInterests = List<String>.from(b['myInterests'] ?? []);
+      final aShared = aInterests.where((i) => myInterests.contains(i)).length;
+      final bShared = bInterests.where((i) => myInterests.contains(i)).length;
+
+      int aScore = aShared * 10;
+      int bScore = bShared * 10;
+
+      if (myLocation.isNotEmpty && a['myLocation'] == myLocation) aScore += 20;
+      if (myLocation.isNotEmpty && b['myLocation'] == myLocation) bScore += 20;
+
+      return bScore.compareTo(aScore);
+    });
+
+    final bestMatch = candidates.first;
+
+    // Claim the match atomically
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final matchRef = _firestore.collection('matching_queue').doc(bestMatch['uid']);
+        final matchDoc = await transaction.get(matchRef);
+        if (matchDoc.exists && matchDoc.data()?['status'] == 'waiting') {
+          transaction.update(matchRef, {'status': 'matched'});
+          transaction.update(_firestore.collection('matching_queue').doc(_uid), {'status': 'matched'});
+        }
+      });
+    } catch (_) {
+      return null;
+    }
+
+    final userDoc = await _firestore.collection('users').doc(bestMatch['uid']).get();
+    return userDoc.data();
   }
 
   // ─── Follow / Unfollow ───────────────────────────────────────────
@@ -343,6 +431,28 @@ class FirestoreService {
   Future<void> setTypingStatus(String chatId, bool isTyping) async {
     await _firestore.collection('chats').doc(chatId).update({
       'typing_$_uid': isTyping,
+    });
+  }
+
+  Future<void> addMessageReaction(String chatId, String messageId, String emoji) async {
+    await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+      'reactions.$_uid': emoji,
+    });
+  }
+
+  Future<void> removeMessageReaction(String chatId, String messageId) async {
+    await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+      'reactions.$_uid': FieldValue.delete(),
     });
   }
 

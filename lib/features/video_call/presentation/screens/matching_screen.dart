@@ -49,16 +49,39 @@ class _MatchingScreenState extends State<MatchingScreen>
     setState(() {
       _isSearching = true;
       _matchFound = false;
+      _matchedUser = null;
     });
 
-    // Add self to matching queue
+    // Add self to matching queue with profile data
     await _firestoreService.addToMatchingQueue(
       genderFilter: _selectedGender,
       minAge: _ageRange.start.toInt(),
       maxAge: _ageRange.end.toInt(),
     );
 
-    // Listen for matches
+    // Try compatible matching first
+    final match = await _firestoreService.findCompatibleMatch(
+      genderFilter: _selectedGender,
+      minAge: _ageRange.start.toInt(),
+      maxAge: _ageRange.end.toInt(),
+    );
+
+    if (match != null && mounted) {
+      setState(() {
+        _matchedUser = match;
+        _matchFound = true;
+        _isSearching = false;
+      });
+
+      await _firestoreService.removeFromMatchingQueue();
+
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _startVideoCall();
+      });
+      return;
+    }
+
+    // Fall back to queue watching
     _queueStream = _firestoreService.watchMatchingQueue(genderFilter: _selectedGender);
     _queueStream?.listen((snapshot) async {
       if (!_isSearching || !mounted) return;
@@ -66,7 +89,6 @@ class _MatchingScreenState extends State<MatchingScreen>
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         if (data['uid'] != FirebaseAuth.instance.currentUser?.uid) {
-          // Found a match!
           final userDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(data['uid'])
@@ -80,10 +102,8 @@ class _MatchingScreenState extends State<MatchingScreen>
               _isSearching = false;
             });
 
-            // Remove from queue
             await _firestoreService.removeFromMatchingQueue();
 
-            // Navigate to call after animation
             Future.delayed(const Duration(seconds: 2), () {
               if (mounted) _startVideoCall();
             });
@@ -92,6 +112,11 @@ class _MatchingScreenState extends State<MatchingScreen>
         }
       }
     });
+  }
+
+  void _skipAndFindNext() async {
+    await _firestoreService.removeFromMatchingQueue();
+    _startMatching();
   }
 
   Future<void> _startVideoCall() async {
@@ -304,27 +329,53 @@ class _MatchingScreenState extends State<MatchingScreen>
 
               const SizedBox(height: 16),
 
-              // Cancel button
+              // Cancel + Skip buttons
               if (_isSearching)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _cancelMatching,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.cardBackground,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _cancelMatching,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.cardBackground,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: _skipAndFindNext,
+                            icon: const Icon(Icons.skip_next_rounded, color: Colors.white),
+                            label: const Text(
+                              'Skip',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryPurple.withOpacity(0.3),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                side: BorderSide(color: AppColors.primaryPurple.withOpacity(0.5)),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
             ],

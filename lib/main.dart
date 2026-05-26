@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as provider;
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/di/service_locator.dart';
+import 'shared/providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +23,12 @@ void main() async {
     ),
   );
   await setupServiceLocator();
-  runApp(const ProviderScope(child: VibeCallApp()));
+  runApp(
+    provider.ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: const ProviderScope(child: VibeCallApp()),
+    ),
+  );
 }
 
 class VibeCallApp extends ConsumerWidget {

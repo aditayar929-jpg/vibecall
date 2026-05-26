@@ -2,24 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../shared/services/firestore_service.dart';
 
-class ChatListScreen extends StatelessWidget {
+class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final chats = [
-      _ChatData('Sophia Rose', 'Hey! How are you doing? 💕', '2m ago', true, true, 92),
-      _ChatData('Emma Watson', 'That sounds amazing!', '15m ago', true, false, 87),
-      _ChatData('Olivia Chen', 'Let\'s meet up soon 🎉', '1h ago', false, true, 95),
-      _ChatData('Ava Mitchell', 'Thanks for the call!', '2h ago', false, false, 78),
-      _ChatData('Isabella Lee', 'You: See you tomorrow!', '3h ago', false, false, 84),
-      _ChatData('Mia Garcia', 'That was so fun 😂', '5h ago', true, false, 76),
-      _ChatData('Luna Park', 'You: Good night! 🌙', '1d ago', false, false, 69),
-      _ChatData('Chloe Kim', 'What are you up to?', '2d ago', false, false, 71),
-    ];
+  State<ChatListScreen> createState() => _ChatListScreenState();
+}
 
+class _ChatListScreenState extends State<ChatListScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+  final String _currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  String _formatTime(dynamic timestamp) {
+    if (timestamp == null) return '';
+    final dt = (timestamp as Timestamp).toDate();
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}';
+  }
+
+  Future<Map<String, dynamic>> _getOtherUserData(List<String> users) async {
+    final otherUid = users.firstWhere((u) => u != _currentUid, orElse: () => '');
+    if (otherUid.isEmpty) return {'name': 'User', 'avatar': '', 'isOnline': false};
+    final doc = await FirebaseFirestore.instance.collection('users').doc(otherUid).get();
+    return doc.data() ?? {'name': 'User', 'avatar': '', 'isOnline': false};
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -67,79 +86,78 @@ class ChatListScreen extends StatelessWidget {
               ).animate().fadeIn(),
             ),
 
-            // New matches row
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: const Text(
-                      'New Matches',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.neonPink),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 90,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: 5,
-                      itemBuilder: (context, index) {
-                        final names = ['Sophia', 'Emma', 'Olivia', 'Ava', 'Isabella'];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: AppColors.primaryGradient),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryPurple.withOpacity(0.3),
-                                      blurRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(2.5),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.background,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      names[index][0],
-                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(names[index], style: const TextStyle(fontSize: 11, color: Colors.white60)),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ).animate().fadeIn(delay: 100.ms),
-            ),
+            // Chat list from Firestore
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestoreService.getUserChats(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SliverToBoxAdapter(
+                    child: Center(child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator(color: AppColors.primaryPurple),
+                    )),
+                  );
+                }
 
-            // Chat list
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final chat = chats[index];
-                  return _buildChatTile(context, chat, index);
-                },
-                childCount: chats.length,
-              ),
+                final docs = snapshot.data?.docs ?? [];
+
+                if (docs.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.chat_bubble_outline_rounded, size: 64, color: Colors.white.withOpacity(0.2)),
+                            const SizedBox(height: 16),
+                            Text('No conversations yet', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16)),
+                            const SizedBox(height: 8),
+                            Text('Start matching to begin chatting!', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final chatDoc = docs[index];
+                      final chatData = chatDoc.data() as Map<String, dynamic>;
+                      final chatId = chatDoc.id;
+                      final users = List<String>.from(chatData['users'] ?? []);
+                      final lastMessage = chatData['lastMessage'] ?? '';
+                      final lastMessageTime = _formatTime(chatData['lastMessageTime']);
+                      final isUnread = (chatData['lastSenderId'] ?? '') != _currentUid &&
+                          (chatData['lastMessage'] ?? '').isNotEmpty;
+
+                      return FutureBuilder<Map<String, dynamic>>(
+                        future: _getOtherUserData(users),
+                        builder: (context, userSnapshot) {
+                          final userData = userSnapshot.data ?? {};
+                          final name = userData['name'] ?? 'User';
+                          final avatar = userData['avatar'] ?? '';
+                          final isOnline = userData['isOnline'] ?? false;
+
+                          return _buildChatTile(
+                            context,
+                            chatId: chatId,
+                            name: name,
+                            avatar: avatar,
+                            lastMessage: lastMessage,
+                            time: lastMessageTime,
+                            isOnline: isOnline,
+                            isUnread: isUnread,
+                            index: index,
+                          );
+                        },
+                      );
+                    },
+                    childCount: docs.length,
+                  ),
+                );
+              },
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -148,17 +166,27 @@ class ChatListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, _ChatData chat, int index) {
+  Widget _buildChatTile(
+    BuildContext context, {
+    required String chatId,
+    required String name,
+    required String avatar,
+    required String lastMessage,
+    required String time,
+    required bool isOnline,
+    required bool isUnread,
+    required int index,
+  }) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        context.push('/chat-detail?chatId=$index&name=${chat.name}&avatar=');
+        context.push('/chat-detail?chatId=$chatId&name=$name&avatar=$avatar');
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: chat.isUnread ? AppColors.primaryPurple.withOpacity(0.08) : Colors.transparent,
+          color: isUnread ? AppColors.primaryPurple.withOpacity(0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
@@ -177,14 +205,14 @@ class ChatListScreen extends StatelessWidget {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: Center(
-                    child: Text(
-                      chat.name[0],
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  child: avatar.isNotEmpty
+                      ? ClipOval(child: Image.network(avatar, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(child: Text(name[0].toUpperCase(),
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)))))
+                      : Center(child: Text(name[0].toUpperCase(),
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
                 ),
-                if (chat.isOnline)
+                if (isOnline)
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -209,17 +237,17 @@ class ChatListScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        chat.name,
+                        name,
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: chat.isUnread ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                       Text(
-                        chat.time,
+                        time,
                         style: TextStyle(
                           fontSize: 12,
-                          color: chat.isUnread ? AppColors.neonPink : Colors.white38,
+                          color: isUnread ? AppColors.neonPink : Colors.white38,
                         ),
                       ),
                     ],
@@ -227,29 +255,20 @@ class ChatListScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      if (chat.isMatch)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: AppColors.primaryGradient),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text('Match', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w600)),
-                        ),
                       Expanded(
                         child: Text(
-                          chat.lastMessage,
+                          lastMessage.isEmpty ? 'Start chatting!' : lastMessage,
                           style: TextStyle(
                             fontSize: 14,
-                            color: chat.isUnread ? Colors.white70 : Colors.white38,
-                            fontWeight: chat.isUnread ? FontWeight.w500 : FontWeight.normal,
+                            color: isUnread ? Colors.white70 : Colors.white38,
+                            fontWeight: isUnread ? FontWeight.w500 : FontWeight.normal,
+                            fontStyle: lastMessage.isEmpty ? FontStyle.italic : FontStyle.normal,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (chat.isUnread)
+                      if (isUnread)
                         Container(
                           width: 22,
                           height: 22,
@@ -271,16 +290,4 @@ class ChatListScreen extends StatelessWidget {
       ).animate().fadeIn(delay: Duration(milliseconds: 200 + index * 60)).slideX(begin: -0.05, delay: Duration(milliseconds: 200 + index * 60)),
     );
   }
-}
-
-class _ChatData {
-  final String name;
-  final String lastMessage;
-  final String time;
-  final bool isOnline;
-  final bool isUnread;
-  final int matchPercent;
-  final bool isMatch;
-
-  _ChatData(this.name, this.lastMessage, this.time, this.isOnline, this.isUnread, this.matchPercent, {this.isMatch = false});
 }
