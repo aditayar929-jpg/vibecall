@@ -4,10 +4,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/services/random_match_service.dart';
 import '../../../../shared/services/bot_service.dart';
 import '../../../../shared/widgets/bot_video_feed.dart';
+import '../../../../shared/widgets/camera_preview_box.dart';
 
 class MatchingScreen extends StatefulWidget {
   const MatchingScreen({super.key});
@@ -246,9 +248,13 @@ class _MatchingScreenState extends State<MatchingScreen>
   }
 
   // ─── Bot Call Logic ─────────────────────────────────────────
-  void _startBotCall(Map<String, dynamic> bot) {
+  void _startBotCall(Map<String, dynamic> bot) async {
     // Assign a random video URL to this bot
     bot['video'] = BotService.getRandomVideoUrl();
+
+    // Request camera permission for user's self-preview
+    await Permission.camera.request();
+    await Permission.microphone.request();
     setState(() {
       _inBotCall = true;
       _botConnected = false;
@@ -803,25 +809,12 @@ class _MatchingScreenState extends State<MatchingScreen>
         botName: bot['name'] ?? 'User',
       ),
 
-      // Bottom-right: small "self camera" preview
-      Positioned(
+      // Bottom-right: real camera preview (user's own face)
+      const Positioned(
         bottom: 140, right: 16,
-        child: Container(
-          width: 100, height: 140,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              color: const Color(0xFF1A1A2E),
-              child: const Center(
-                child: Icon(Icons.videocam_rounded, color: Colors.white38, size: 30),
-              ),
-            ),
-          ),
+        child: CameraPreviewBox(
+          width: 110,
+          height: 150,
         ),
       ),
 
