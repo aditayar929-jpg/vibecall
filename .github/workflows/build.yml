@@ -37,17 +37,26 @@ jobs:
       # ─── Fix corrupted launcher icons ──────────────────────
       - name: Generate launcher icons
         run: |
-          # Create app icon using ImageMagick (purple gradient with V letter)
+          pip install Pillow
           mkdir -p assets/images
-          convert -size 1024x1024 \
-            \( xc:none -fill "gradient:#7B2FFF-#FF2D78" -draw "roundrectangle 0,0 1024,1024 180,180" \) \
-            -gravity center -fill white -font Helvetica-Bold -pointsize 500 -annotate +0+50 "V" \
-            assets/images/app_icon.png
-          # Delete corrupted mipmap icons so flutter_launcher_icons regenerates them
+          python3 -c "
+          from PIL import Image, ImageDraw, ImageFont
+          size = 1024
+          img = Image.new('RGB', (size, size), '#7B2FFF')
+          draw = ImageDraw.Draw(img)
+          try:
+              font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 550)
+          except:
+              font = ImageFont.load_default()
+          bbox = draw.textbbox((0, 0), 'V', font=font)
+          tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
+          draw.text(((size-tw)//2, (size-th)//2-40), 'V', fill='white', font=font)
+          img.save('assets/images/app_icon.png')
+          print('Done')
+          "
           rm -f android/app/src/main/res/mipmap-*/ic_launcher.png
           rm -f android/app/src/main/res/mipmap-*/ic_launcher_round.png
           rm -f android/app/src/main/res/mipmap-*/ic_launcher_foreground.png
-          # Generate new icons
           dart run flutter_launcher_icons
 
       - name: Check for analysis issues
