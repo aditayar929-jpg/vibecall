@@ -28,6 +28,7 @@ dependencies:
   # Video Calling (WebRTC P2P)
   flutter_webrtc: ^0.11.6
   permission_handler: ^11.1.0
+  video_player: ^2.8.6
 
   # UI
   google_fonts: ^6.1.0

@@ -201,6 +201,7 @@ class _MatchingScreenState extends State<MatchingScreen>
       if (!mounted || !_isSearching) return;
 
       final bot = BotService.getRandomBot(genderFilter: _selectedGender);
+      bot['video'] = BotService.getRandomVideoUrl();
       _pollTimer?.cancel();
       _searchTimer?.cancel();
       _myQueueSub?.cancel();
@@ -246,6 +247,8 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   // ─── Bot Call Logic ─────────────────────────────────────────
   void _startBotCall(Map<String, dynamic> bot) {
+    // Assign a random video URL to this bot
+    bot['video'] = BotService.getRandomVideoUrl();
     setState(() {
       _inBotCall = true;
       _botConnected = false;
@@ -402,6 +405,7 @@ class _MatchingScreenState extends State<MatchingScreen>
       excludeName: _matchedUser?['name'] ?? '',
       genderFilter: _selectedGender,
     );
+    bot['video'] = BotService.getRandomVideoUrl();
     setState(() {
       _matchFound = true;
       _isBotMatch = true;
@@ -792,9 +796,10 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Widget _buildBotVideoFeed(Map<String, dynamic> bot) {
     return Stack(fit: StackFit.expand, children: [
-      // Animated video-like feed
+      // Real video feed
       BotVideoFeed(
         avatarUrl: bot['avatar'] ?? '',
+        videoUrl: bot['video'] ?? BotService.getRandomVideoUrl(),
         botName: bot['name'] ?? 'User',
       ),
 

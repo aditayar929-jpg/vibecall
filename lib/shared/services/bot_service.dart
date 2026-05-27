@@ -291,6 +291,39 @@ class BotService {
     return 50 + _random.nextInt(150);
   }
 
+  // ─── Free video URLs for bot video calls ───────────────────
+  // These are short portrait videos of women from free CDN sources
+  static final List<String> _botVideoUrls = [
+    'https://cdn.pixabay.com/video/2024/02/23/201483-915915398_large.mp4',
+    'https://cdn.pixabay.com/video/2020/07/30/45349-446786598_large.mp4',
+    'https://cdn.pixabay.com/video/2021/04/10/70502-536538498_large.mp4',
+    'https://cdn.pixabay.com/video/2023/10/17/185454-875602692_large.mp4',
+    'https://cdn.pixabay.com/video/2020/05/25/40037-424930959_large.mp4',
+    'https://cdn.pixabay.com/video/2024/01/11/196042-900984785_large.mp4',
+    'https://cdn.pixabay.com/video/2022/08/02/126654-735696783_large.mp4',
+    'https://cdn.pixabay.com/video/2023/03/22/155481-811455498_large.mp4',
+    'https://cdn.pixabay.com/video/2021/08/10/84704-587403358_large.mp4',
+    'https://cdn.pixabay.com/video/2020/10/15/52805-471519676_large.mp4',
+    'https://cdn.pixabay.com/video/2023/06/12/166504-836689036_large.mp4',
+    'https://cdn.pixabay.com/video/2022/03/28/112367-693498576_large.mp4',
+    'https://cdn.pixabay.com/video/2024/03/16/204469-925555148_large.mp4',
+    'https://cdn.pixabay.com/video/2021/02/14/64982-511752925_large.mp4',
+    'https://cdn.pixabay.com/video/2020/09/03/49034-456885275_large.mp4',
+    'https://cdn.pixabay.com/video/2023/11/28/191096-887988032_large.mp4',
+    'https://cdn.pixabay.com/video/2022/05/26/117998-715478695_large.mp4',
+    'https://cdn.pixabay.com/video/2023/07/04/169744-844739855_large.mp4',
+    'https://cdn.pixabay.com/video/2021/06/28/79031-568823698_large.mp4',
+    'https://cdn.pixabay.com/video/2020/11/28/57523-485296695_large.mp4',
+  ];
+
+  static String getRandomVideoUrl() {
+    return _botVideoUrls[_random.nextInt(_botVideoUrls.length)];
+  }
+
+  static String getVideoUrlForIndex(int index) {
+    return _botVideoUrls[index % _botVideoUrls.length];
+  }
+
   // ─── Bot reaction messages (during call) ────────────────────
   static final List<String> _reactions = [
     "😂", "😊", "❤️", "😍", "🥰", "✨", "💕", "😘", "🙈", "🎉",
