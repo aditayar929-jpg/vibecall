@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/glass_container.dart';
 import '../../../../shared/widgets/gradient_button.dart';
@@ -17,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
+  int _onlineCount = 0;
 
   @override
   void initState() {
@@ -28,6 +31,103 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _showTitle = false);
       }
     });
+    _markUserOnline();
+    _watchOnlineUsers();
+    _autoStartCallForNewUser();
+  }
+
+  void _markUserOnline() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }).catchError((_) {});
+    }
+  }
+
+  void _watchOnlineUsers() {
+    FirebaseFirestore.instance
+        .collection('users')
+        .where('isOnline', isEqualTo: true)
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) setState(() => _onlineCount = snapshot.docs.length);
+    });
+  }
+
+  void _autoStartCallForNewUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final data = doc.data();
+    if (data == null) return;
+
+    // If user has profile complete but hasn't done first call yet
+    final hasProfile = (data['name']?.toString().isNotEmpty ?? false);
+    final hasDoneFirstCall = data['hasDoneFirstCall'] ?? false;
+
+    if (hasProfile && !hasDoneFirstCall && mounted) {
+      // Show auto-match dialog after a short delay
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) _showAutoMatchDialog();
+      });
+    }
+  }
+
+  void _showAutoMatchDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.8),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.videocam_rounded, color: AppColors.neonPink, size: 28),
+            SizedBox(width: 10),
+            Text('Start Meeting!', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          '$_onlineCount users are online right now!\nStart a random video call and meet someone new.',
+          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // Mark as done so we don't show again
+              final uid = FirebaseAuth.instance.currentUser?.uid;
+              if (uid != null) {
+                FirebaseFirestore.instance.collection('users').doc(uid).update({
+                  'hasDoneFirstCall': true,
+                }).catchError((_) {});
+              }
+            },
+            child: Text('Later', style: TextStyle(color: Colors.white.withOpacity(0.4))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final uid = FirebaseAuth.instance.currentUser?.uid;
+              if (uid != null) {
+                FirebaseFirestore.instance.collection('users').doc(uid).update({
+                  'hasDoneFirstCall': true,
+                }).catchError((_) {});
+              }
+              context.push('/matching');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.neonPink,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Start Call', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -228,7 +328,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Match with someone new now!',
+                                _onlineCount > 0
+                                    ? '$_onlineCount people online - tap to connect!'
+                                    : 'Match with someone new now!',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.white.withOpacity(0.7),

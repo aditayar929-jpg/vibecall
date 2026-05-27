@@ -46,6 +46,12 @@ dependencies:
   sign_in_with_apple: ^6.1.0
   flutter_facebook_auth: ^6.0.4
 
+  # Video Calling
+  livekit_client: ^2.3.0
+  # zego_uikit_prebuilt_call: ^4.17.8  # Enable when ZEGOCLOUD is configured
+  # zego_uikit_signaling_plugin: ^2.2.21
+  http: ^1.2.0
+
   # Utils
   intl: ^0.19.0
   uuid: ^4.2.2

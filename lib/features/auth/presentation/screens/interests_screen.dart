@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class InterestsScreen extends StatefulWidget {
@@ -159,9 +161,25 @@ class _InterestsScreenState extends State<InterestsScreen> {
                     height: 58,
                     child: ElevatedButton(
                       onPressed: _selectedInterests.length >= 3
-                          ? () {
+                          ? () async {
                               HapticFeedback.mediumImpact();
-                              context.go('/home');
+                              // Save interests to Firestore
+                              final uid = FirebaseAuth.instance.currentUser?.uid;
+                              if (uid != null) {
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(uid)
+                                    .update({
+                                  'interests': _selectedInterests.toList(),
+                                });
+                              }
+                              if (mounted) {
+                                context.go('/home');
+                                // Auto-start random matching for new user
+                                Future.delayed(const Duration(milliseconds: 500), () {
+                                  if (mounted) context.push('/matching');
+                                });
+                              }
                             }
                           : null,
                       style: ElevatedButton.styleFrom(

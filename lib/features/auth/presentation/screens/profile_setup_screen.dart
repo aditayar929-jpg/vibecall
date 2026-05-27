@@ -121,7 +121,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       await user.updatePhotoURL(_avatarUrl!);
     }
 
-    if (mounted) context.go('/home');
+    if (mounted) {
+      // New user → auto-start random matching
+      context.go('/home');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) context.push('/matching');
+      });
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -5,8 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/services/call_service.dart';
-import '../../../../shared/services/firestore_service.dart';
+import '../../../../shared/services/random_match_service.dart';
+import '../../../../shared/services/bot_service.dart';
+import 'bot_call_screen.dart';
 
 class MatchingScreen extends StatefulWidget {
   const MatchingScreen({super.key});
@@ -19,16 +21,25 @@ class _MatchingScreenState extends State<MatchingScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _rotateController;
-  final CallService _callService = CallService();
-  final FirestoreService _firestoreService = FirestoreService();
+  final RandomMatchService _matchService = RandomMatchService();
 
   bool _isSearching = true;
   bool _matchFound = false;
   Map<String, dynamic>? _matchedUser;
+  bool _isBotMatch = false;
   String _selectedGender = 'All';
-  double _maxDistance = 50;
   RangeValues _ageRange = const RangeValues(18, 35);
-  Stream<QuerySnapshot>? _queueStream;
+  Timer? _pollTimer;
+  int _searchSeconds = 0;
+  Timer? _searchTimer;
+  int _onlineCount = 0;
+  int _queueCount = 0;
+  StreamSubscription? _onlineSub;
+  StreamSubscription? _queueSub;
+  StreamSubscription? _myQueueSub;
+
+  // After 8 seconds with no real user, auto-match with bot
+  static const int _botMatchDelay = 8;
 
   @override
   void initState() {
@@ -42,7 +53,45 @@ class _MatchingScreenState extends State<MatchingScreen>
       duration: const Duration(seconds: 3),
     )..repeat();
 
+    _matchService.setOnline();
+    _watchOnlineCount();
+    _watchQueueCount();
     _startMatching();
+  }
+
+  void _watchOnlineCount() {
+    _onlineSub = FirebaseFirestore.instance
+        .collection('users')
+        .where('isOnline', isEqualTo: true)
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) {
+        setState(() {
+          // Show real count + simulated minimum for UX
+          final real = snapshot.docs.length;
+          _onlineCount = real < 10
+              ? real + BotService.getSimulatedOnlineCount()
+              : real;
+        });
+      }
+    });
+  }
+
+  void _watchQueueCount() {
+    _queueSub = FirebaseFirestore.instance
+        .collection('random_queue')
+        .where('status', isEqualTo: 'waiting')
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) {
+        setState(() {
+          final real = snapshot.docs.length;
+          _queueCount = real < 3
+              ? real + (5 + DateTime.now().millisecond % 10)
+              : real;
+        });
+      }
+    });
   }
 
   Future<void> _startMatching() async {
@@ -50,102 +99,341 @@ class _MatchingScreenState extends State<MatchingScreen>
       _isSearching = true;
       _matchFound = false;
       _matchedUser = null;
+      _isBotMatch = false;
+      _searchSeconds = 0;
     });
 
-    // Add self to matching queue with profile data
-    await _firestoreService.addToMatchingQueue(
+    // Start search timer
+    _searchTimer?.cancel();
+    _searchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) setState(() => _searchSeconds++);
+    });
+
+    // Join the Firestore queue
+    await _matchService.joinQueue(
       genderFilter: _selectedGender,
-      minAge: _ageRange.start.toInt(),
-      maxAge: _ageRange.end.toInt(),
+      minAge: _ageRange.start.round(),
+      maxAge: _ageRange.end.round(),
     );
 
-    // Try compatible matching first
-    final match = await _firestoreService.findCompatibleMatch(
-      genderFilter: _selectedGender,
-      minAge: _ageRange.start.toInt(),
-      maxAge: _ageRange.end.toInt(),
-    );
+    // Listen for someone matching with us (passive listener)
+    _myQueueSub?.cancel();
+    _myQueueSub = _matchService.watchMyQueue().listen((doc) {
+      if (!doc.exists) return;
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data == null) return;
 
-    if (match != null && mounted) {
-      setState(() {
-        _matchedUser = match;
-        _matchFound = true;
-        _isSearching = false;
-      });
+      if (data['status'] == 'matched' && mounted && _isSearching) {
+        _myQueueSub?.cancel();
+        _pollTimer?.cancel();
+        _searchTimer?.cancel();
 
-      await _firestoreService.removeFromMatchingQueue();
+        final roomName = data['roomName'] as String;
+        final partnerUid = data['partnerUid'] as String;
 
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) _startVideoCall();
-      });
-      return;
-    }
-
-    // Fall back to queue watching
-    _queueStream = _firestoreService.watchMatchingQueue(genderFilter: _selectedGender);
-    _queueStream?.listen((snapshot) async {
-      if (!_isSearching || !mounted) return;
-
-      for (final doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data['uid'] != FirebaseAuth.instance.currentUser?.uid) {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(data['uid'])
-              .get();
-
-          if (userDoc.exists && mounted) {
-            final userData = userDoc.data()!;
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(partnerUid)
+            .get()
+            .then((partnerDoc) {
+          final partnerData = partnerDoc.data();
+          if (mounted) {
             setState(() {
-              _matchedUser = {'uid': data['uid'], ...userData};
               _matchFound = true;
               _isSearching = false;
+              _isBotMatch = false;
+              _matchedUser = partnerData ?? {'name': 'Stranger'};
             });
-
-            await _firestoreService.removeFromMatchingQueue();
 
             Future.delayed(const Duration(seconds: 2), () {
-              if (mounted) _startVideoCall();
+              if (mounted) _navigateToLiveCall(roomName, partnerData?['name'] ?? 'Stranger');
             });
-            return;
           }
-        }
+        });
+      }
+    });
+
+    // Try to find a real match immediately
+    final result = await _matchService.findMatch(
+      genderFilter: _selectedGender,
+      minAge: _ageRange.start.round(),
+      maxAge: _ageRange.end.round(),
+    );
+
+    if (result != null && result['matched'] == true) {
+      _myQueueSub?.cancel();
+      _pollTimer?.cancel();
+      _searchTimer?.cancel();
+
+      final roomName = result['roomName'] as String;
+      final partner = result['partner'] as Map<String, dynamic>;
+
+      if (mounted) {
+        setState(() {
+          _matchFound = true;
+          _isSearching = false;
+          _isBotMatch = false;
+          _matchedUser = partner;
+        });
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) _navigateToLiveCall(roomName, partner['name'] ?? 'Stranger');
+        });
+      }
+    } else {
+      // No immediate match — start polling + schedule bot fallback
+      _startPolling();
+      _scheduleBotFallback();
+    }
+  }
+
+  void _scheduleBotFallback() {
+    // After _botMatchDelay seconds, if still searching, match with a bot
+    Future.delayed(const Duration(seconds: _botMatchDelay), () {
+      if (!mounted || !_isSearching) return;
+
+      final bot = BotService.getRandomBot(genderFilter: _selectedGender);
+
+      _pollTimer?.cancel();
+      _searchTimer?.cancel();
+      _myQueueSub?.cancel();
+      _matchService.leaveQueue();
+
+      setState(() {
+        _matchFound = true;
+        _isSearching = false;
+        _isBotMatch = true;
+        _matchedUser = bot;
+      });
+
+      // Navigate to bot call after animation
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _navigateToBotCall(bot);
+      });
+    });
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted || !_isSearching) {
+        timer.cancel();
+        return;
+      }
+
+      final result = await _matchService.findMatch(
+        genderFilter: _selectedGender,
+        minAge: _ageRange.start.round(),
+        maxAge: _ageRange.end.round(),
+      );
+
+      if (result != null && result['matched'] == true && mounted) {
+        timer.cancel();
+        _searchTimer?.cancel();
+        _myQueueSub?.cancel();
+
+        final roomName = result['roomName'] as String;
+        final partner = result['partner'] as Map<String, dynamic>;
+
+        setState(() {
+          _matchFound = true;
+          _isSearching = false;
+          _isBotMatch = false;
+          _matchedUser = partner;
+        });
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) _navigateToLiveCall(roomName, partner['name'] ?? 'Stranger');
+        });
       }
     });
   }
 
-  void _skipAndFindNext() async {
-    await _firestoreService.removeFromMatchingQueue();
+  void _navigateToLiveCall(String roomName, String partnerName) {
+    context.push('/live-call', extra: {
+      'roomName': roomName,
+      'partnerName': partnerName,
+      'enableVideo': true,
+    }).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSearching = true;
+          _matchFound = false;
+        });
+        _startMatching();
+      }
+    });
+  }
+
+  void _navigateToBotCall(Map<String, dynamic> bot) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BotCallScreen(
+          botProfile: bot,
+          callType: 'video',
+        ),
+      ),
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSearching = true;
+          _matchFound = false;
+        });
+        _startMatching();
+      }
+    });
+  }
+
+  Future<void> _skipAndFindNext() async {
+    HapticFeedback.lightImpact();
+    await _matchService.leaveQueue();
+    _pollTimer?.cancel();
+    _searchTimer?.cancel();
+    _myQueueSub?.cancel();
     _startMatching();
   }
 
-  Future<void> _startVideoCall() async {
-    if (_matchedUser == null) return;
-
-    final result = await _callService.initiateCall(
-      calleeId: _matchedUser!['uid'],
-      calleeName: _matchedUser!['name'] ?? 'User',
-      calleeAvatar: _matchedUser!['avatar'] ?? '',
-      callType: 'video',
-    );
-
-    if (mounted) {
-      context.push(
-        '/video-call?callId=${result['callId']}&remoteUserId=${_matchedUser!['uid']}&isCaller=true',
-      );
-    }
+  Future<void> _cancelMatching() async {
+    HapticFeedback.lightImpact();
+    _pollTimer?.cancel();
+    _searchTimer?.cancel();
+    _myQueueSub?.cancel();
+    await _matchService.leaveQueue();
+    if (mounted) context.pop();
   }
 
-  void _cancelMatching() async {
-    await _firestoreService.removeFromMatchingQueue();
-    if (mounted) context.pop();
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text('Filters', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Show me', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: ['All', 'Female', 'Male'].map((g) {
+                  final isSelected = _selectedGender == g;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => setSheetState(() => _selectedGender = g),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: isSelected
+                              ? const LinearGradient(colors: AppColors.primaryGradient)
+                              : null,
+                          color: isSelected ? null : AppColors.surfaceColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: isSelected
+                              ? null
+                              : Border.all(color: Colors.white.withOpacity(0.05)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            g,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white60,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Age Range', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(
+                    '${_ageRange.start.round()} - ${_ageRange.end.round()}',
+                    style: const TextStyle(color: AppColors.neonPink, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              RangeSlider(
+                values: _ageRange,
+                min: 18,
+                max: 60,
+                divisions: 42,
+                activeColor: AppColors.primaryPurple,
+                inactiveColor: AppColors.surfaceColor,
+                onChanged: (values) => setSheetState(() => _ageRange = values),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _pollTimer?.cancel();
+                    _searchTimer?.cancel();
+                    _myQueueSub?.cancel();
+                    _matchService.leaveQueue();
+                    _startMatching();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  ),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: AppColors.primaryGradient),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Center(
+                      child: Text('Apply Filters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _rotateController.dispose();
-    _firestoreService.removeFromMatchingQueue();
+    _pollTimer?.cancel();
+    _searchTimer?.cancel();
+    _onlineSub?.cancel();
+    _queueSub?.cancel();
+    _myQueueSub?.cancel();
+    _matchService.leaveQueue();
+    _matchService.setOffline();
     super.dispose();
   }
 
@@ -153,8 +441,6 @@ class _MatchingScreenState extends State<MatchingScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        width: double.infinity,
-        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -173,166 +459,225 @@ class _MatchingScreenState extends State<MatchingScreen>
                   children: [
                     IconButton(
                       onPressed: _cancelMatching,
-                      icon: const Icon(Icons.close_rounded, size: 28),
+                      icon: const Icon(Icons.arrow_back_ios_rounded, size: 22),
                     ),
                     const Text(
-                      'Random Match',
+                      'Random Video Call',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
-                      onPressed: () => _showFilterSheet(),
-                      icon: const Icon(Icons.tune_rounded, size: 24),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(),
-
-              // Matching animation
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Container(
-                    width: 220 + _pulseController.value * 30,
-                    height: 220 + _pulseController.value * 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.primaryPurple.withOpacity(0.4 - _pulseController.value * 0.2),
-                          AppColors.primaryPurple.withOpacity(0.1 - _pulseController.value * 0.05),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 160,
-                        height: 160,
+                      onPressed: _showFilterSheet,
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: _matchFound
-                                ? [AppColors.successGreen, AppColors.diamondBlue]
-                                : AppColors.primaryGradient,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_matchFound ? AppColors.successGreen : AppColors.primaryPurple)
-                                  .withOpacity(0.5),
-                              blurRadius: 40,
-                              spreadRadius: 5,
-                            ),
-                          ],
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: _matchFound
-                            ? const Icon(Icons.check_rounded, color: Colors.white, size: 60)
-                            : RotationTransition(
-                                turns: _rotateController,
-                                child: const Icon(Icons.sync_rounded, color: Colors.white, size: 60),
-                              ),
+                        child: const Icon(Icons.tune_rounded, size: 22),
                       ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              Text(
-                _matchFound ? 'Match Found!' : 'Finding someone for you...',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: _matchFound ? AppColors.successGreen : Colors.white,
-                ),
-              ).animate().fadeIn(),
-
-              const SizedBox(height: 12),
-
-              if (_matchFound && _matchedUser != null)
-                Column(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: AppColors.primaryGradient),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          (_matchedUser!['name'] ?? 'U')[0].toUpperCase(),
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _matchedUser!['name'] ?? 'User',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_matchedUser!['age'] ?? ''} • ${_matchedUser!['location'] ?? ''}',
-                      style: TextStyle(color: Colors.white.withOpacity(0.5)),
                     ),
                   ],
-                ).animate().fadeIn(delay: 200.ms),
-
-              if (_isSearching)
-                Text(
-                  'Looking for the perfect match',
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 15),
-                ).animate().fadeIn(delay: 200.ms),
-
-              const Spacer(),
-
-              // Online users count
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .where('isOnline', isEqualTo: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  final count = snapshot.data?.docs.length ?? 0;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.onlineGreen,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$count users online',
-                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                ),
               ),
 
-              const SizedBox(height: 16),
-
-              // Cancel + Skip buttons
+              // Status text
               if (_isSearching)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Searching... ${_searchSeconds}s',
+                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.onlineGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_onlineCount online',
+                            style: TextStyle(
+                              color: AppColors.onlineGreen.withOpacity(0.7),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Icon(Icons.queue_rounded, size: 14, color: AppColors.neonPink),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$_queueCount waiting',
+                            style: TextStyle(
+                              color: AppColors.neonPink.withOpacity(0.7),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Center animation
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Pulsing ring
+                      AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, child) {
+                          return Container(
+                            width: 220 + _pulseController.value * 30,
+                            height: 220 + _pulseController.value * 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  AppColors.primaryPurple.withOpacity(0.4 - _pulseController.value * 0.2),
+                                  AppColors.primaryPurple.withOpacity(0.1 - _pulseController.value * 0.05),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 160,
+                                height: 160,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: _matchFound
+                                        ? [AppColors.successGreen, AppColors.diamondBlue]
+                                        : AppColors.primaryGradient,
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (_matchFound ? AppColors.successGreen : AppColors.primaryPurple)
+                                          .withOpacity(0.5),
+                                      blurRadius: 40,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: _matchFound
+                                    ? const Icon(Icons.check_rounded, color: Colors.white, size: 60)
+                                    : RotationTransition(
+                                        turns: _rotateController,
+                                        child: const Icon(Icons.sync_rounded, color: Colors.white, size: 60),
+                                      ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 30),
+                      Text(
+                        _matchFound ? 'Match Found!' : 'Looking for someone...',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: _matchFound ? AppColors.successGreen : Colors.white,
+                        ),
+                      ),
+                      if (_matchFound && _matchedUser != null) ...[
+                        const SizedBox(height: 12),
+                        // Matched user avatar
+                        Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.successGreen, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.successGreen.withOpacity(0.4),
+                                blurRadius: 20,
+                                spreadRadius: 3,
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: _matchedUser!['avatar'] != null &&
+                                    (_matchedUser!['avatar'] as String).isNotEmpty
+                                ? Image.network(
+                                    _matchedUser!['avatar'],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.white,
+                                      size: 35,
+                                    ),
+                                  )
+                                : const Icon(Icons.person_rounded, color: Colors.white, size: 35),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _matchedUser!['name'] ?? 'Stranger',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        if (_matchedUser!['age'] != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_matchedUser!['age']} years',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.5),
+                            ),
+                          ),
+                        ],
+                        if (_isBotMatch) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryPurple.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'New user',
+                              style: TextStyle(
+                                color: AppColors.primaryPurple.withOpacity(0.7),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                      if (_isSearching) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'This may take a few seconds',
+                          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom buttons
+              if (_isSearching)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
                   child: Row(
                     children: [
                       Expanded(
@@ -378,112 +723,6 @@ class _MatchingScreenState extends State<MatchingScreen>
                     ],
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text('Filters', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              const Text('Gender', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                children: ['All', 'Male', 'Female', 'Other'].map((g) {
-                  final isSelected = _selectedGender == g;
-                  return GestureDetector(
-                    onTap: () => setSheetState(() => _selectedGender = g),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primaryPurple.withOpacity(0.2) : AppColors.surfaceColor,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                          color: isSelected ? AppColors.primaryPurple : Colors.white12,
-                        ),
-                      ),
-                      child: Text(
-                        g,
-                        style: TextStyle(
-                          color: isSelected ? AppColors.lightPurple : Colors.white54,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Age Range', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  Text(
-                    '${_ageRange.start.round()} - ${_ageRange.end.round()}',
-                    style: const TextStyle(color: AppColors.neonPink),
-                  ),
-                ],
-              ),
-              RangeSlider(
-                values: _ageRange,
-                min: 18,
-                max: 60,
-                activeColor: AppColors.primaryPurple,
-                inactiveColor: AppColors.surfaceColor,
-                onChanged: (v) => setSheetState(() => _ageRange = v),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _startMatching();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  ),
-                  child: Ink(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: AppColors.primaryGradient),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: const Text('Apply & Search', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
