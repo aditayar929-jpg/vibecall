@@ -17,8 +17,15 @@ class LiveKitService {
   LocalAudioTrack? get localAudio => _localAudio;
   bool get isConnected => _room?.connectionState == ConnectionState.connected;
 
+  List<RemoteParticipant> get remoteParticipants =>
+      _room?.remoteParticipants.values.toList() ?? [];
+
+  // Callbacks
+  void Function(RemoteParticipant)? onRemoteConnected;
+  void Function(RemoteParticipant)? onRemoteDisconnected;
+
   // ─── GET TOKEN FROM SERVER ────────────────────────────────────
-  Future<Map<String, dynamic>> _getToken({
+  Future<String> _getToken({
     required String roomName,
     String? metadata,
   }) async {
@@ -38,7 +45,7 @@ class LiveKitService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      return jsonDecode(response.body)['token'];
     }
     throw Exception('Failed to get token: ${response.body}');
   }
@@ -94,27 +101,33 @@ class LiveKitService {
   // ─── CONNECT TO ROOM ────────────────────────────────────────
   Future<Room> connectToRoom({
     required String roomName,
-    required String token,
+    String? token,
     bool enableVideo = true,
     bool enableAudio = true,
   }) async {
+    // Get token from server if not provided
+    final authToken = token ?? await _getToken(roomName: roomName);
+
     final roomOptions = RoomOptions(
       adaptiveStream: true,
       dynacast: true,
-      defaultCameraCaptureOptions: const CameraCaptureOptions(
-        cameraPosition: CameraPosition.front,
-      ),
-      defaultPublishOptions: const VideoPublishOptions(
-        simulcast: true,
-      ),
     );
 
     _room = Room(roomOptions: roomOptions);
     _roomListener = _room!.createListener();
 
+    // Listen for participant events
+    _roomListener!.on<ParticipantConnectedEvent>((event) {
+      onRemoteConnected?.call(event.participant as RemoteParticipant);
+    });
+
+    _roomListener!.on<ParticipantDisconnectedEvent>((event) {
+      onRemoteDisconnected?.call(event.participant as RemoteParticipant);
+    });
+
     await _room!.connect(
       'wss://${Uri.parse(_serverUrl).host}',
-      token,
+      authToken,
     );
 
     if (enableVideo) {
@@ -164,12 +177,7 @@ class LiveKitService {
   // ─── FLIP CAMERA ────────────────────────────────────────────
   Future<void> flipCamera() async {
     if (_localVideo != null) {
-      final helper = _room!.localParticipant!;
-      final track = helper.videoTrackPublications.firstOrNull;
-      if (track != null) {
-        final videoTrack = track.track as LocalVideoTrack;
-        await videoTrack.switchCamera();
-      }
+      await _localVideo!.switchCamera();
     }
   }
 

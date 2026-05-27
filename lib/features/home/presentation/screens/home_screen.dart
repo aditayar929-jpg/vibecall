@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/widgets/glass_container.dart';
-import '../../../../shared/widgets/gradient_button.dart';
 import '../../../../shared/widgets/online_avatar.dart';
 
 class HomeScreen extends StatefulWidget {

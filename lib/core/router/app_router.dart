@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -132,6 +131,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/live-call',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return LiveCallScreen(
+            roomName: extra['roomName'] ?? '',
+            partnerName: extra['partnerName'] ?? 'Stranger',
+            enableVideo: extra['enableVideo'] ?? true,
+          );
+        },
       ),
     ],
   );

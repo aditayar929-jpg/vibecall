@@ -29,7 +29,6 @@ class _BotCallScreenState extends State<BotCallScreen>
   // Call state
   bool _isConnected = false;
   bool _isMuted = false;
-  bool _isCameraOff = false;
   bool _showControls = true;
   Timer? _hideControlsTimer;
   int _callDuration = 0;

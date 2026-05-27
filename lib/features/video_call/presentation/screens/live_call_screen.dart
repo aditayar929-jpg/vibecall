@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/services/livekit_service.dart';
-import '../../../../shared/services/firestore_service.dart';
 
 class LiveCallScreen extends StatefulWidget {
   final String roomName;
@@ -27,7 +26,6 @@ class LiveCallScreen extends StatefulWidget {
 class _LiveCallScreenState extends State<LiveCallScreen>
     with TickerProviderStateMixin {
   final LiveKitService _liveKitService = LiveKitService();
-  final FirestoreService _firestoreService = FirestoreService();
 
   Room? _room;
   bool _isConnected = false;
@@ -74,6 +72,14 @@ class _LiveCallScreenState extends State<LiveCallScreen>
 
   Future<void> _connectToRoom() async {
     try {
+      // Set callbacks before connecting
+      _liveKitService.onRemoteConnected = (participant) {
+        _onRemoteParticipantJoined(participant);
+      };
+      _liveKitService.onRemoteDisconnected = (participant) {
+        _onRemoteParticipantLeft();
+      };
+
       final room = await _liveKitService.connectToRoom(
         roomName: widget.roomName,
         enableVideo: widget.enableVideo,
@@ -82,15 +88,6 @@ class _LiveCallScreenState extends State<LiveCallScreen>
 
       _room = room;
       _room!.addListener(_onRoomUpdate);
-
-      // Listen for participant events
-      _liveKitService.onParticipantConnected((participant) {
-        _onRemoteParticipantJoined(participant);
-      });
-
-      _liveKitService.onParticipantDisconnected((participant) {
-        _onRemoteParticipantLeft();
-      });
 
       // Check if someone is already in the room
       final remotes = _liveKitService.remoteParticipants;
@@ -215,7 +212,7 @@ class _LiveCallScreenState extends State<LiveCallScreen>
 
   Future<void> _switchCamera() async {
     HapticFeedback.lightImpact();
-    await _liveKitService.switchCamera();
+    await _liveKitService.flipCamera();
     setState(() => _isFrontCamera = !_isFrontCamera);
   }
 
@@ -260,7 +257,7 @@ class _LiveCallScreenState extends State<LiveCallScreen>
           children: [
             // Remote video (full screen)
             if (_remoteVideoTrack != null)
-              VideoTrackRenderer(_remoteVideoTrack!, fit: VideoViewFit.cover)
+              VideoTrackRenderer(_remoteVideoTrack!)
             else
               Container(
                 decoration: const BoxDecoration(
@@ -333,8 +330,6 @@ class _LiveCallScreenState extends State<LiveCallScreen>
                       child: _liveKitService.localVideo != null
                           ? VideoTrackRenderer(
                               _liveKitService.localVideo!,
-                              fit: VideoViewFit.cover,
-                              mirrorMode: VideoMirrorMode.mirror,
                             )
                           : Container(
                               color: AppColors.surfaceColor,

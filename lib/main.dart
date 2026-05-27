@@ -8,7 +8,6 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/di/service_locator.dart';
 import 'shared/providers/auth_provider.dart';
-import 'shared/services/zego_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
