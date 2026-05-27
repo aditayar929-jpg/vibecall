@@ -34,6 +34,22 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      # ─── Fix corrupted launcher icons ──────────────────────
+      - name: Generate launcher icons
+        run: |
+          # Create app icon using ImageMagick (purple gradient with V letter)
+          mkdir -p assets/images
+          convert -size 1024x1024 \
+            \( xc:none -fill "gradient:#7B2FFF-#FF2D78" -draw "roundrectangle 0,0 1024,1024 180,180" \) \
+            -gravity center -fill white -font Helvetica-Bold -pointsize 500 -annotate +0+50 "V" \
+            assets/images/app_icon.png
+          # Delete corrupted mipmap icons so flutter_launcher_icons regenerates them
+          rm -f android/app/src/main/res/mipmap-*/ic_launcher.png
+          rm -f android/app/src/main/res/mipmap-*/ic_launcher_round.png
+          rm -f android/app/src/main/res/mipmap-*/ic_launcher_foreground.png
+          # Generate new icons
+          dart run flutter_launcher_icons
+
       - name: Check for analysis issues
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
         continue-on-error: true

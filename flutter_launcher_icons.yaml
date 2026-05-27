@@ -1,12 +1,8 @@
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/images/app_icon.png"
-  adaptive_icon_background: "#0A0A0F"
-  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
-  web:
-    generate: true
-  windows:
-    generate: true
-  macos:
-    generate: true
+  adaptive_icon_background: "#7B2FFF"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+  remove_alpha_ios: true
+  background_color_ios: "#7B2FFF"
