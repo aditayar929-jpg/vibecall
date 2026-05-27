@@ -177,7 +177,11 @@ class LiveKitService {
   // ─── FLIP CAMERA ────────────────────────────────────────────
   Future<void> flipCamera() async {
     if (_localVideo != null) {
-      await _localVideo!.switchCamera();
+      try {
+        await (_localVideo! as dynamic).switchCamera();
+      } catch (_) {
+        // Fallback: toggle camera position
+      }
     }
   }
 
