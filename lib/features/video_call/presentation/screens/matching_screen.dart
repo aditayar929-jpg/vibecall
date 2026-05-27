@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/services/random_match_service.dart';
 import '../../../../shared/services/bot_service.dart';
+import '../../../../shared/widgets/bot_video_feed.dart';
 
 class MatchingScreen extends StatefulWidget {
   const MatchingScreen({super.key});
@@ -58,7 +60,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   Timer? _reactionTimer;
   bool _callEnded = false;
 
-  static const int _botMatchDelay = 8;
+  static const int _botMatchDelay = 3;
 
   @override
   void initState() {
@@ -130,62 +132,67 @@ class _MatchingScreenState extends State<MatchingScreen>
       if (mounted) setState(() => _searchSeconds++);
     });
 
-    await _matchService.joinQueue(
-      genderFilter: _selectedGender,
-      minAge: _ageRange.start.round(),
-      maxAge: _ageRange.end.round(),
-    );
+    // Always schedule bot fallback first (most reliable path)
+    _scheduleBotFallback();
 
-    _myQueueSub?.cancel();
-    _myQueueSub = _matchService.watchMyQueue().listen((doc) {
-      if (!doc.exists) return;
-      final data = doc.data() as Map<String, dynamic>?;
-      if (data == null) return;
-      if (data['status'] == 'matched' && mounted && _isSearching) {
+    // Try real matching in background
+    try {
+      await _matchService.joinQueue(
+        genderFilter: _selectedGender,
+        minAge: _ageRange.start.round(),
+        maxAge: _ageRange.end.round(),
+      );
+
+      _myQueueSub?.cancel();
+      _myQueueSub = _matchService.watchMyQueue().listen((doc) {
+        if (!doc.exists) return;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return;
+        if (data['status'] == 'matched' && mounted && _isSearching) {
+          _myQueueSub?.cancel();
+          _pollTimer?.cancel();
+          _searchTimer?.cancel();
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(data['partnerUid'])
+              .get()
+              .then((partnerDoc) {
+            final pd = partnerDoc.data();
+            if (mounted && _isSearching) {
+              setState(() {
+                _matchFound = true;
+                _isSearching = false;
+                _isBotMatch = false;
+                _matchedUser = pd ?? {'name': 'Stranger'};
+              });
+            }
+          }).catchError((_) {});
+        }
+      });
+
+      final result = await _matchService.findMatch(
+        genderFilter: _selectedGender,
+        minAge: _ageRange.start.round(),
+        maxAge: _ageRange.end.round(),
+      );
+
+      if (result != null && result['matched'] == true && mounted && _isSearching) {
         _myQueueSub?.cancel();
         _pollTimer?.cancel();
         _searchTimer?.cancel();
-        final roomName = data['roomName'] as String;
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(data['partnerUid'])
-            .get()
-            .then((partnerDoc) {
-          final pd = partnerDoc.data();
-          if (mounted) {
-            setState(() {
-              _matchFound = true;
-              _isSearching = false;
-              _isBotMatch = false;
-              _matchedUser = pd ?? {'name': 'Stranger'};
-            });
-          }
-        });
-      }
-    });
-
-    final result = await _matchService.findMatch(
-      genderFilter: _selectedGender,
-      minAge: _ageRange.start.round(),
-      maxAge: _ageRange.end.round(),
-    );
-
-    if (result != null && result['matched'] == true) {
-      _myQueueSub?.cancel();
-      _pollTimer?.cancel();
-      _searchTimer?.cancel();
-      final partner = result['partner'] as Map<String, dynamic>;
-      if (mounted) {
+        final partner = result['partner'] as Map<String, dynamic>;
         setState(() {
           _matchFound = true;
           _isSearching = false;
           _isBotMatch = false;
           _matchedUser = partner;
         });
+      } else {
+        _startPolling();
       }
-    } else {
+    } catch (e) {
+      // Firestore error — bot fallback already scheduled, just start polling
       _startPolling();
-      _scheduleBotFallback();
     }
   }
 
@@ -785,38 +792,36 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Widget _buildBotVideoFeed(Map<String, dynamic> bot) {
     return Stack(fit: StackFit.expand, children: [
-      AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, _) => Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [
-              Color.lerp(const Color(0xFF1A1A2E), const Color(0xFF2D1B3D), _pulseController.value)!,
-              Color.lerp(const Color(0xFF16213E), const Color(0xFF1A1A2E), _pulseController.value)!,
-            ]),
-          ),
-        ),
+      // Animated video-like feed
+      BotVideoFeed(
+        avatarUrl: bot['avatar'] ?? '',
+        botName: bot['name'] ?? 'User',
       ),
-      Center(
-        child: AnimatedBuilder(
-          animation: _pulseController,
-          builder: (context, _) => Transform.scale(
-            scale: 1.0 + _pulseController.value * 0.03,
+
+      // Bottom-right: small "self camera" preview
+      Positioned(
+        bottom: 140, right: 16,
+        child: Container(
+          width: 100, height: 140,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
             child: Container(
-              width: 200, height: 200,
-              decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [
-                BoxShadow(color: AppColors.primaryPurple.withOpacity(0.3 + _pulseController.value * 0.2),
-                    blurRadius: 40, spreadRadius: 10),
-              ]),
-              child: ClipOval(
-                child: Image.network(bot['avatar'] ?? '', fit: BoxFit.cover, width: 200, height: 200,
-                    errorBuilder: (_, __, ___) => Container(color: AppColors.primaryPurple.withOpacity(0.3),
-                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 80))),
+              color: const Color(0xFF1A1A2E),
+              child: const Center(
+                child: Icon(Icons.videocam_rounded, color: Colors.white38, size: 30),
               ),
             ),
           ),
         ),
       ),
-      Positioned(bottom: 140, left: 0, right: 0,
+
+      // Audio wave indicator
+      Positioned(bottom: 140, left: 0, right: 130,
         child: AnimatedBuilder(
           animation: _waveController,
           builder: (context, _) => Row(
@@ -833,25 +838,39 @@ class _MatchingScreenState extends State<MatchingScreen>
   }
 
   Widget _buildBotConnecting(Map<String, dynamic> bot) {
-    return Container(
-      color: const Color(0xFF0A0A0F),
-      child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    final avatarUrl = bot['avatar'] ?? '';
+    return Stack(fit: StackFit.expand, children: [
+      // Blurred background of the bot's photo
+      ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Image.network(avatarUrl, fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0A0A0F))),
+      ),
+      Container(color: Colors.black.withOpacity(0.6)),
+      Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 100, height: 100,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primaryPurple, width: 3)),
+          width: 130, height: 130,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.primaryPurple, width: 3),
+            boxShadow: [BoxShadow(color: AppColors.primaryPurple.withOpacity(0.4), blurRadius: 20, spreadRadius: 3)],
+          ),
           child: ClipOval(
-            child: Image.network(bot['avatar'] ?? '', fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, color: Colors.white, size: 40)),
+            child: Image.network(avatarUrl, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, color: Colors.white, size: 50)),
           ),
         ),
         const SizedBox(height: 24),
         Text('Connecting with ${bot['name'] ?? 'User'}...',
             style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 12),
-        SizedBox(width: 24, height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryPurple.withOpacity(0.7))),
+        const SizedBox(height: 8),
+        Text(bot['city'] ?? '',
+            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+        const SizedBox(height: 20),
+        SizedBox(width: 28, height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primaryPurple.withOpacity(0.8))),
       ])),
-    );
+    ]);
   }
 
   Widget _buildChatOverlay() {

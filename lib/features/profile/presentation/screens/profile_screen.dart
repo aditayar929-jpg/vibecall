@@ -25,11 +25,32 @@ class ProfileScreen extends StatelessWidget {
         child: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
               return const Center(child: CircularProgressIndicator(color: AppColors.primaryPurple));
             }
 
-            final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+            final rawData = snapshot.data?.data();
+            final data = rawData is Map<String, dynamic> ? rawData : <String, dynamic>{};
+            if (data.isEmpty && uid.isNotEmpty) {
+              // Create default profile doc if missing
+              FirebaseFirestore.instance.collection('users').doc(uid).set({
+                'name': 'User',
+                'avatar': '',
+                'bio': '',
+                'age': '',
+                'gender': '',
+                'interests': <String>[],
+                'isVerified': false,
+                'isPremium': false,
+                'coins': 0,
+                'followers': 0,
+                'following': 0,
+                'profileCompletion': 20,
+                'photos': <String>[],
+                'isOnline': true,
+                'createdAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+            }
             final name = data['name'] ?? 'User';
             final avatar = data['avatar'] ?? '';
             final bio = data['bio'] ?? '';
