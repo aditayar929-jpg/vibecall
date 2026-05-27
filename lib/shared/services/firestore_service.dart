@@ -26,6 +26,7 @@ class FirestoreService {
     String? gender,
     int? age,
     List<String>? interests,
+    List<String>? photos,
     String? location,
   }) async {
     final data = <String, dynamic>{};
@@ -34,6 +35,10 @@ class FirestoreService {
     if (gender != null) data['gender'] = gender;
     if (age != null) data['age'] = age;
     if (interests != null) data['interests'] = interests;
+    if (photos != null) {
+      data['photos'] = photos;
+      if (photos.isNotEmpty) data['avatar'] = photos[0];
+    }
     if (location != null) data['location'] = location;
     data['profileCompletion'] = _calculateCompletion(data);
 

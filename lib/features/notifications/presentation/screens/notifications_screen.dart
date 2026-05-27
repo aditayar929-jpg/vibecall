@@ -10,14 +10,14 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifications = [
-      _NotificationData(Icons.favorite_rounded, 'New Match!', 'You and Sophia Rose matched', '2m ago', AppColors.neonPink, true),
-      _NotificationData(Icons.videocam_rounded, 'Missed Call', 'Emma Watson tried to video call you', '15m ago', AppColors.primaryPurple, true),
-      _NotificationData(Icons.monetization_on_rounded, 'Coins Received', 'You earned 10 coins from daily reward', '1h ago', AppColors.coinGold, false),
-      _NotificationData(Icons.chat_rounded, 'New Message', 'Olivia Chen sent you a message', '2h ago', AppColors.diamondBlue, false),
-      _NotificationData(Icons.person_add_rounded, 'New Follower', 'Ava Mitchell started following you', '3h ago', AppColors.successGreen, false),
-      _NotificationData(Icons.diamond_rounded, 'Premium Activated', 'Your VIP membership is now active', '5h ago', AppColors.coinGold, false),
-      _NotificationData(Icons.star_rounded, 'Profile Featured', 'Your profile was featured in Trending', '1d ago', AppColors.neonPink, false),
-      _NotificationData(Icons.card_giftcard_rounded, 'Gift Received', 'Isabella Lee sent you a Diamond gift', '1d ago', AppColors.diamondBlue, false),
+      _NotificationData(Icons.favorite_rounded, 'New Match!', 'You and Sophia Rose matched', '2m ago', AppColors.neonPink, true, 'match'),
+      _NotificationData(Icons.videocam_rounded, 'Missed Call', 'Emma Watson tried to video call you', '15m ago', AppColors.primaryPurple, true, 'call'),
+      _NotificationData(Icons.monetization_on_rounded, 'Coins Received', 'You earned 10 coins from daily reward', '1h ago', AppColors.coinGold, false, 'wallet'),
+      _NotificationData(Icons.chat_rounded, 'New Message', 'Olivia Chen sent you a message', '2h ago', AppColors.diamondBlue, false, 'chat'),
+      _NotificationData(Icons.person_add_rounded, 'New Follower', 'Ava Mitchell started following you', '3h ago', AppColors.successGreen, false, 'profile'),
+      _NotificationData(Icons.diamond_rounded, 'Premium Activated', 'Your VIP membership is now active', '5h ago', AppColors.coinGold, false, 'premium'),
+      _NotificationData(Icons.star_rounded, 'Profile Featured', 'Your profile was featured in Trending', '1d ago', AppColors.neonPink, false, 'profile'),
+      _NotificationData(Icons.card_giftcard_rounded, 'Gift Received', 'Isabella Lee sent you a Diamond gift', '1d ago', AppColors.diamondBlue, false, 'wallet'),
     ];
 
     return Scaffold(
@@ -29,7 +29,12 @@ class NotificationsScreen extends StatelessWidget {
         title: const Text('Notifications'),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('All notifications marked as read'), backgroundColor: AppColors.primaryPurple),
+              );
+            },
             child: const Text('Mark all read', style: TextStyle(color: AppColors.neonPink, fontSize: 13)),
           ),
         ],
@@ -52,6 +57,7 @@ class NotificationsScreen extends StatelessWidget {
             return GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
+                _handleNotificationTap(context, notif.type);
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 10),
@@ -124,6 +130,7 @@ class NotificationsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
                   ],
                 ),
               ),
@@ -132,6 +139,31 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _handleNotificationTap(BuildContext context, String type) {
+    switch (type) {
+      case 'match':
+        context.push('/matching');
+        break;
+      case 'call':
+        context.push('/matching');
+        break;
+      case 'chat':
+        context.push('/chats');
+        break;
+      case 'wallet':
+        context.push('/wallet');
+        break;
+      case 'premium':
+        context.push('/premium');
+        break;
+      case 'profile':
+        context.push('/profile');
+        break;
+      default:
+        context.push('/home');
+    }
   }
 }
 
@@ -142,6 +174,7 @@ class _NotificationData {
   final String time;
   final Color color;
   final bool isUnread;
+  final String type;
 
-  _NotificationData(this.icon, this.title, this.description, this.time, this.color, this.isUnread);
+  _NotificationData(this.icon, this.title, this.description, this.time, this.color, this.isUnread, this.type);
 }

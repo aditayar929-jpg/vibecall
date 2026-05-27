@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -59,6 +60,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         gender: _selectedGender,
         age: int.tryParse(_ageController.text.trim()),
         interests: _selectedInterests,
+        photos: _photos,
       );
       if (mounted) {
         HapticFeedback.lightImpact();
@@ -132,14 +134,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 itemCount: 6,
                 itemBuilder: (context, index) {
-                  final hasPhoto = index < 2;
+                  final hasPhoto = index < _photos.length;
                   return GestureDetector(
                     onTap: () {
                       HapticFeedback.lightImpact();
                       showModalBottomSheet(
                         context: context,
                         backgroundColor: Colors.transparent,
-                        builder: (context) => Container(
+                        builder: (modalContext) => Container(
                           padding: const EdgeInsets.all(24),
                           decoration: const BoxDecoration(
                             color: AppColors.cardBackground,
@@ -151,18 +153,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ListTile(
                                 leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primaryPurple),
                                 title: const Text('Take Photo'),
-                                onTap: () => Navigator.pop(context),
+                                onTap: () async {
+                                  Navigator.pop(modalContext);
+                                  final picker = ImagePicker();
+                                  final picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+                                  if (picked != null && mounted) {
+                                    final url = await _firestoreService.uploadPhoto(File(picked.path), 'profile_photos');
+                                    setState(() {
+                                      if (index < _photos.length) {
+                                        _photos[index] = url;
+                                      } else {
+                                        _photos.add(url);
+                                      }
+                                    });
+                                  }
+                                },
                               ),
                               ListTile(
                                 leading: const Icon(Icons.photo_library_rounded, color: AppColors.neonPink),
                                 title: const Text('Choose from Gallery'),
-                                onTap: () => Navigator.pop(context),
+                                onTap: () async {
+                                  Navigator.pop(modalContext);
+                                  final picker = ImagePicker();
+                                  final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                                  if (picked != null && mounted) {
+                                    final url = await _firestoreService.uploadPhoto(File(picked.path), 'profile_photos');
+                                    setState(() {
+                                      if (index < _photos.length) {
+                                        _photos[index] = url;
+                                      } else {
+                                        _photos.add(url);
+                                      }
+                                    });
+                                  }
+                                },
                               ),
                               if (hasPhoto)
                                 ListTile(
                                   leading: const Icon(Icons.delete_rounded, color: AppColors.errorRed),
                                   title: const Text('Remove Photo', style: TextStyle(color: AppColors.errorRed)),
-                                  onTap: () => Navigator.pop(context),
+                                  onTap: () {
+                                    Navigator.pop(modalContext);
+                                    setState(() {
+                                      if (index < _photos.length) {
+                                        _photos.removeAt(index);
+                                      }
+                                    });
+                                  },
                                 ),
                               const SizedBox(height: 8),
                             ],
@@ -182,17 +219,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.primaryPurple.withOpacity(0.3),
-                                          AppColors.neonPink.withOpacity(0.2),
-                                        ],
-                                      ),
-                                    ),
-                                    child: Icon(Icons.person_rounded, size: 50, color: Colors.white.withOpacity(0.2)),
-                                  ),
+                                  _photos[index].startsWith('http')
+                                      ? Image.network(
+                                          _photos[index],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  AppColors.primaryPurple.withOpacity(0.3),
+                                                  AppColors.neonPink.withOpacity(0.2),
+                                                ],
+                                              ),
+                                            ),
+                                            child: Icon(Icons.person_rounded, size: 50, color: Colors.white.withOpacity(0.2)),
+                                          ),
+                                        )
+                                      : Image.file(
+                                          File(_photos[index]),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  AppColors.primaryPurple.withOpacity(0.3),
+                                                  AppColors.neonPink.withOpacity(0.2),
+                                                ],
+                                              ),
+                                            ),
+                                            child: Icon(Icons.person_rounded, size: 50, color: Colors.white.withOpacity(0.2)),
+                                          ),
+                                        ),
                                   if (index == 0)
                                     Positioned(
                                       top: 8,
@@ -378,7 +435,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Location updated!'), backgroundColor: AppColors.successGreen),
+                        );
+                      },
                       child: const Text('Update', style: TextStyle(color: AppColors.neonPink)),
                     ),
                   ],

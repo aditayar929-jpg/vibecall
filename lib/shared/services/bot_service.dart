@@ -7,131 +7,137 @@ import 'dart:math';
 class BotService {
   static final Random _random = Random();
 
-  // ─── Bot Girl Profiles ──────────────────────────────────────
+  // ─── Bot Girl Profiles (100+ realistic Indian girls) ─────────
   static final List<Map<String, dynamic>> _botProfiles = [
-    {
-      'name': 'Aisha',
-      'age': 22,
-      'city': 'Mumbai',
-      'bio': 'Love dancing & travel',
-      'avatar': 'https://i.pravatar.cc/300?img=1',
-      'interests': ['Dance', 'Travel', 'Music', 'Photography'],
-    },
-    {
-      'name': 'Priya',
-      'age': 24,
-      'city': 'Delhi',
-      'bio': 'Foodie & adventure seeker',
-      'avatar': 'https://i.pravatar.cc/300?img=5',
-      'interests': ['Cooking', 'Travel', 'Fitness', 'Fashion'],
-    },
-    {
-      'name': 'Sneha',
-      'age': 21,
-      'city': 'Bangalore',
-      'bio': 'Tech geek by day, dancer by night',
-      'avatar': 'https://i.pravatar.cc/300?img=9',
-      'interests': ['Tech', 'Dance', 'Gaming', 'Music'],
-    },
-    {
-      'name': 'Ananya',
-      'age': 23,
-      'city': 'Pune',
-      'bio': 'Bookworm with a wild side',
-      'avatar': 'https://i.pravatar.cc/300?img=16',
-      'interests': ['Reading', 'Yoga', 'Coffee', 'Art'],
-    },
-    {
-      'name': 'Riya',
-      'age': 20,
-      'city': 'Jaipur',
-      'bio': 'Living my best life',
-      'avatar': 'https://i.pravatar.cc/300?img=20',
-      'interests': ['Fashion', 'Travel', 'Photography', 'Music'],
-    },
-    {
-      'name': 'Kavya',
-      'age': 25,
-      'city': 'Hyderabad',
-      'bio': 'Singer & dreamer',
-      'avatar': 'https://i.pravatar.cc/300?img=23',
-      'interests': ['Music', 'Movies', 'Coffee', 'Nature'],
-    },
-    {
-      'name': 'Meera',
-      'age': 22,
-      'city': 'Chennai',
-      'bio': 'Classical dancer',
-      'avatar': 'https://i.pravatar.cc/300?img=25',
-      'interests': ['Dance', 'Art', 'Yoga', 'Nature'],
-    },
-    {
-      'name': 'Tanya',
-      'age': 21,
-      'city': 'Kolkata',
-      'bio': 'Cat mom & artist',
-      'avatar': 'https://i.pravatar.cc/300?img=31',
-      'interests': ['Art', 'Pets', 'Coffee', 'Photography'],
-    },
-    {
-      'name': 'Nisha',
-      'age': 23,
-      'city': 'Ahmedabad',
-      'bio': 'Gym freak & foodie',
-      'avatar': 'https://i.pravatar.cc/300?img=32',
-      'interests': ['Fitness', 'Cooking', 'Travel', 'Sports'],
-    },
-    {
-      'name': 'Divya',
-      'age': 24,
-      'city': 'Chandigarh',
-      'bio': 'Fashion designer in making',
-      'avatar': 'https://i.pravatar.cc/300?img=44',
-      'interests': ['Fashion', 'Art', 'Travel', 'Photography'],
-    },
-    {
-      'name': 'Pooja',
-      'age': 22,
-      'city': 'Lucknow',
-      'bio': 'Shayari lover',
-      'avatar': 'https://i.pravatar.cc/300?img=45',
-      'interests': ['Reading', 'Music', 'Movies', 'Coffee'],
-    },
-    {
-      'name': 'Simran',
-      'age': 20,
-      'city': 'Amritsar',
-      'bio': 'Punjabi kudi with big dreams',
-      'avatar': 'https://i.pravatar.cc/300?img=47',
-      'interests': ['Dance', 'Travel', 'Fitness', 'Music'],
-    },
-    {
-      'name': 'Isha',
-      'age': 26,
-      'city': 'Noida',
-      'bio': 'Startup life',
-      'avatar': 'https://i.pravatar.cc/300?img=48',
-      'interests': ['Tech', 'Coffee', 'Travel', 'Photography'],
-    },
-    {
-      'name': 'Sakshi',
-      'age': 21,
-      'city': 'Indore',
-      'bio': 'Singer & night owl',
-      'avatar': 'https://i.pravatar.cc/300?img=49',
-      'interests': ['Music', 'Movies', 'Cooking', 'Nature'],
-    },
-    {
-      'name': 'Aditi',
-      'age': 23,
-      'city': 'Bhopal',
-      'bio': 'Wanderlust',
-      'avatar': 'https://i.pravatar.cc/300?img=50',
-      'interests': ['Travel', 'Photography', 'Nature', 'Yoga'],
-    },
+    // Mumbai
+    {'name': 'Aisha', 'age': 22, 'city': 'Mumbai', 'bio': 'Love dancing & travel 💃', 'avatar': 'https://randomuser.me/api/portraits/women/1.jpg', 'interests': ['Dance', 'Travel', 'Music', 'Photography']},
+    {'name': 'Priya', 'age': 24, 'city': 'Mumbai', 'bio': 'Foodie & adventure seeker 🍕', 'avatar': 'https://randomuser.me/api/portraits/women/2.jpg', 'interests': ['Cooking', 'Travel', 'Fitness', 'Fashion']},
+    {'name': 'Riya', 'age': 21, 'city': 'Mumbai', 'bio': 'Beach lover 🏖️', 'avatar': 'https://randomuser.me/api/portraits/women/3.jpg', 'interests': ['Travel', 'Photography', 'Music', 'Yoga']},
+    {'name': 'Tanvi', 'age': 23, 'city': 'Mumbai', 'bio': 'Model & dreamer ✨', 'avatar': 'https://randomuser.me/api/portraits/women/4.jpg', 'interests': ['Fashion', 'Dance', 'Photography', 'Art']},
+    {'name': 'Neha', 'age': 25, 'city': 'Mumbai', 'bio': 'Corporate girl by day 🌙', 'avatar': 'https://randomuser.me/api/portraits/women/5.jpg', 'interests': ['Coffee', 'Reading', 'Travel', 'Music']},
+    // Delhi
+    {'name': 'Ananya', 'age': 22, 'city': 'Delhi', 'bio': 'Bookworm with a wild side 📚', 'avatar': 'https://randomuser.me/api/portraits/women/6.jpg', 'interests': ['Reading', 'Yoga', 'Coffee', 'Art']},
+    {'name': 'Kavya', 'age': 20, 'city': 'Delhi', 'bio': 'Living my best life 🌟', 'avatar': 'https://randomuser.me/api/portraits/women/7.jpg', 'interests': ['Fashion', 'Travel', 'Photography', 'Music']},
+    {'name': 'Sneha', 'age': 24, 'city': 'Delhi', 'bio': 'Foodie capital explorer 🍜', 'avatar': 'https://randomuser.me/api/portraits/women/8.jpg', 'interests': ['Cooking', 'Travel', 'Fitness', 'Dance']},
+    {'name': 'Divya', 'age': 23, 'city': 'Delhi', 'bio': 'Fashion designer in making 👗', 'avatar': 'https://randomuser.me/api/portraits/women/9.jpg', 'interests': ['Fashion', 'Art', 'Travel', 'Photography']},
+    {'name': 'Pooja', 'age': 21, 'city': 'Delhi', 'bio': 'Shayari lover 💕', 'avatar': 'https://randomuser.me/api/portraits/women/10.jpg', 'interests': ['Reading', 'Music', 'Movies', 'Coffee']},
+    // Bangalore
+    {'name': 'Meera', 'age': 22, 'city': 'Bangalore', 'bio': 'Tech geek by day, dancer by night 💻', 'avatar': 'https://randomuser.me/api/portraits/women/11.jpg', 'interests': ['Tech', 'Dance', 'Gaming', 'Music']},
+    {'name': 'Isha', 'age': 26, 'city': 'Bangalore', 'bio': 'Startup life ☕', 'avatar': 'https://randomuser.me/api/portraits/women/12.jpg', 'interests': ['Tech', 'Coffee', 'Travel', 'Photography']},
+    {'name': 'Aditi', 'age': 23, 'city': 'Bangalore', 'bio': 'Coder & coffee addict 👩‍💻', 'avatar': 'https://randomuser.me/api/portraits/women/13.jpg', 'interests': ['Tech', 'Coffee', 'Gaming', 'Music']},
+    {'name': 'Prachi', 'age': 21, 'city': 'Bangalore', 'bio': 'Garden city girl 🌿', 'avatar': 'https://randomuser.me/api/portraits/women/14.jpg', 'interests': ['Nature', 'Yoga', 'Travel', 'Photography']},
+    {'name': 'Ritika', 'age': 24, 'city': 'Bangalore', 'bio': 'Music is my life 🎵', 'avatar': 'https://randomuser.me/api/portraits/women/15.jpg', 'interests': ['Music', 'Dance', 'Travel', 'Cooking']},
+    // Pune
+    {'name': 'Sakshi', 'age': 21, 'city': 'Pune', 'bio': 'Singer & night owl 🦉', 'avatar': 'https://randomuser.me/api/portraits/women/16.jpg', 'interests': ['Music', 'Movies', 'Cooking', 'Nature']},
+    {'name': 'Simran', 'age': 20, 'city': 'Pune', 'bio': 'College vibes ✌️', 'avatar': 'https://randomuser.me/api/portraits/women/17.jpg', 'interests': ['Dance', 'Travel', 'Fitness', 'Music']},
+    {'name': 'Mansi', 'age': 23, 'city': 'Pune', 'bio': 'Marathon runner 🏃‍♀️', 'avatar': 'https://randomuser.me/api/portraits/women/18.jpg', 'interests': ['Fitness', 'Travel', 'Photography', 'Nature']},
+    {'name': 'Payal', 'age': 22, 'city': 'Pune', 'bio': 'Art is my therapy 🎨', 'avatar': 'https://randomuser.me/api/portraits/women/19.jpg', 'interests': ['Art', 'Photography', 'Coffee', 'Reading']},
+    {'name': 'Sonali', 'age': 25, 'city': 'Pune', 'bio': 'Wanderlust soul 🌍', 'avatar': 'https://randomuser.me/api/portraits/women/20.jpg', 'interests': ['Travel', 'Photography', 'Nature', 'Yoga']},
+    // Hyderabad
+    {'name': 'Tanya', 'age': 21, 'city': 'Hyderabad', 'bio': 'Biryani lover 🍚', 'avatar': 'https://randomuser.me/api/portraits/women/21.jpg', 'interests': ['Cooking', 'Travel', 'Music', 'Movies']},
+    {'name': 'Nisha', 'age': 23, 'city': 'Hyderabad', 'bio': 'Gym freak & foodie 💪', 'avatar': 'https://randomuser.me/api/portraits/women/22.jpg', 'interests': ['Fitness', 'Cooking', 'Travel', 'Sports']},
+    {'name': 'Shreya', 'age': 22, 'city': 'Hyderabad', 'bio': 'IT professional by day 🖥️', 'avatar': 'https://randomuser.me/api/portraits/women/23.jpg', 'interests': ['Tech', 'Coffee', 'Travel', 'Dance']},
+    {'name': 'Varsha', 'age': 24, 'city': 'Hyderabad', 'bio': 'Classical dance lover 💃', 'avatar': 'https://randomuser.me/api/portraits/women/24.jpg', 'interests': ['Dance', 'Art', 'Music', 'Yoga']},
+    {'name': 'Lakshmi', 'age': 20, 'city': 'Hyderabad', 'bio': 'Book lover & chai addict ☕', 'avatar': 'https://randomuser.me/api/portraits/women/25.jpg', 'interests': ['Reading', 'Coffee', 'Travel', 'Photography']},
+    // Chennai
+    {'name': 'Deepa', 'age': 22, 'city': 'Chennai', 'bio': 'Filter coffee & Kollywood 🎬', 'avatar': 'https://randomuser.me/api/portraits/women/26.jpg', 'interests': ['Movies', 'Music', 'Cooking', 'Dance']},
+    {'name': 'Kavitha', 'age': 24, 'city': 'Chennai', 'bio': 'Bharatanatyam dancer 🪷', 'avatar': 'https://randomuser.me/api/portraits/women/27.jpg', 'interests': ['Dance', 'Art', 'Yoga', 'Nature']},
+    {'name': 'Janani', 'age': 21, 'city': 'Chennai', 'bio': 'Beach sunset chaser 🌅', 'avatar': 'https://randomuser.me/api/portraits/women/28.jpg', 'interests': ['Travel', 'Photography', 'Nature', 'Music']},
+    {'name': 'Priyanka', 'age': 23, 'city': 'Chennai', 'bio': 'Carnatic music lover 🎶', 'avatar': 'https://randomuser.me/api/portraits/women/29.jpg', 'interests': ['Music', 'Dance', 'Art', 'Reading']},
+    {'name': 'Swathi', 'age': 25, 'city': 'Chennai', 'bio': 'Silk saree enthusiast 👘', 'avatar': 'https://randomuser.me/api/portraits/women/30.jpg', 'interests': ['Fashion', 'Travel', 'Cooking', 'Photography']},
+    // Kolkata
+    {'name': 'Roshni', 'age': 22, 'city': 'Kolkata', 'bio': 'Rasgulla & adda lover 🍬', 'avatar': 'https://randomuser.me/api/portraits/women/31.jpg', 'interests': ['Cooking', 'Reading', 'Music', 'Art']},
+    {'name': 'Suman', 'age': 21, 'city': 'Kolkata', 'bio': 'Durga Puja vibes 🪔', 'avatar': 'https://randomuser.me/api/portraits/women/32.jpg', 'interests': ['Dance', 'Music', 'Photography', 'Travel']},
+    {'name': 'Ankita', 'age': 24, 'city': 'Kolkata', 'bio': 'Poetry & rain lover 🌧️', 'avatar': 'https://randomuser.me/api/portraits/women/33.jpg', 'interests': ['Reading', 'Art', 'Music', 'Coffee']},
+    {'name': 'Mitali', 'age': 23, 'city': 'Kolkata', 'bio': 'Fish curry & football ⚽', 'avatar': 'https://randomuser.me/api/portraits/women/34.jpg', 'interests': ['Sports', 'Cooking', 'Travel', 'Music']},
+    {'name': 'Pallavi', 'age': 20, 'city': 'Kolkata', 'bio': 'Art student 🎨', 'avatar': 'https://randomuser.me/api/portraits/women/35.jpg', 'interests': ['Art', 'Photography', 'Coffee', 'Travel']},
+    // Jaipur
+    {'name': 'Komal', 'age': 22, 'city': 'Jaipur', 'bio': 'Pink city princess 👸', 'avatar': 'https://randomuser.me/api/portraits/women/36.jpg', 'interests': ['Fashion', 'Travel', 'Photography', 'Dance']},
+    {'name': 'Garima', 'age': 23, 'city': 'Jaipur', 'bio': 'Rajasthani food lover 🍛', 'avatar': 'https://randomuser.me/api/portraits/women/37.jpg', 'interests': ['Cooking', 'Travel', 'Music', 'Art']},
+    {'name': 'Jyoti', 'age': 21, 'city': 'Jaipur', 'bio': 'Fort explorer 🏰', 'avatar': 'https://randomuser.me/api/portraits/women/38.jpg', 'interests': ['Travel', 'Photography', 'History', 'Art']},
+    {'name': 'Nandini', 'age': 24, 'city': 'Jaipur', 'bio': 'Mehndi artist 🌸', 'avatar': 'https://randomuser.me/api/portraits/women/39.jpg', 'interests': ['Art', 'Fashion', 'Dance', 'Photography']},
+    {'name': 'Preeti', 'age': 20, 'city': 'Jaipur', 'bio': 'Ghoomar dancer 💃', 'avatar': 'https://randomuser.me/api/portraits/women/40.jpg', 'interests': ['Dance', 'Music', 'Travel', 'Cooking']},
+    // Ahmedabad
+    {'name': 'Disha', 'age': 22, 'city': 'Ahmedabad', 'bio': 'Dhokla & garba lover 🕺', 'avatar': 'https://randomuser.me/api/portraits/women/41.jpg', 'interests': ['Dance', 'Cooking', 'Travel', 'Music']},
+    {'name': 'Hetal', 'age': 23, 'city': 'Ahmedabad', 'bio': 'Business minded girl 💼', 'avatar': 'https://randomuser.me/api/portraits/women/42.jpg', 'interests': ['Tech', 'Travel', 'Fitness', 'Coffee']},
+    {'name': 'Foram', 'age': 21, 'city': 'Ahmedabad', 'bio': 'Textile design student 🧵', 'avatar': 'https://randomuser.me/api/portraits/women/43.jpg', 'interests': ['Fashion', 'Art', 'Photography', 'Travel']},
+    {'name': 'Zeel', 'age': 24, 'city': 'Ahmedabad', 'bio': 'Navratri queen 🪩', 'avatar': 'https://randomuser.me/api/portraits/women/44.jpg', 'interests': ['Dance', 'Music', 'Fashion', 'Cooking']},
+    {'name': 'Bhavya', 'age': 20, 'city': 'Ahmedabad', 'bio': 'Food blogger 🍽️', 'avatar': 'https://randomuser.me/api/portraits/women/45.jpg', 'interests': ['Cooking', 'Photography', 'Travel', 'Coffee']},
+    // Chandigarh
+    {'name': 'Simran', 'age': 22, 'city': 'Chandigarh', 'bio': 'Punjabi kudi with big dreams 🌟', 'avatar': 'https://randomuser.me/api/portraits/women/46.jpg', 'interests': ['Dance', 'Travel', 'Fitness', 'Music']},
+    {'name': 'Harpreet', 'age': 23, 'city': 'Ch Chandigarh', 'bio': 'Butter chicken lover 🍗', 'avatar': 'https://randomuser.me/api/portraits/women/47.jpg', 'interests': ['Cooking', 'Travel', 'Music', 'Dance']},
+    {'name': 'Gurleen', 'age': 21, 'city': 'Chandigarh', 'bio': 'Sikhni from Chandigarh ✨', 'avatar': 'https://randomuser.me/api/portraits/women/48.jpg', 'interests': ['Fashion', 'Dance', 'Travel', 'Photography']},
+    {'name': 'Manpreet', 'age': 24, 'city': 'Chandigarh', 'bio': 'Rock garden visitor 🪨', 'avatar': 'https://randomuser.me/api/portraits/women/49.jpg', 'interests': ['Travel', 'Nature', 'Photography', 'Yoga']},
+    {'name': 'Jasmine', 'age': 20, 'city': 'Chandigarh', 'bio': 'Bhangra queen 💃', 'avatar': 'https://randomuser.me/api/portraits/women/50.jpg', 'interests': ['Dance', 'Music', 'Fitness', 'Travel']},
+    // Lucknow
+    {'name': 'Fatima', 'age': 22, 'city': 'Lucknow', 'bio': 'Tehzeeb & biryani 🍚', 'avatar': 'https://randomuser.me/api/portraits/women/51.jpg', 'interests': ['Cooking', 'Reading', 'Music', 'Art']},
+    {'name': 'Zara', 'age': 23, 'city': 'Lucknow', 'bio': 'Chikankari lover 🪡', 'avatar': 'https://randomuser.me/api/portraits/women/52.jpg', 'interests': ['Fashion', 'Art', 'Travel', 'Photography']},
+    {'name': 'Ayesha', 'age': 21, 'city': 'Lucknow', 'bio': 'Nawabi vibes 👑', 'avatar': 'https://randomuser.me/api/portraits/women/53.jpg', 'interests': ['Travel', 'History', 'Cooking', 'Music']},
+    {'name': 'Saba', 'age': 24, 'city': 'Lucknow', 'bio': 'Poetry lover 📝', 'avatar': 'https://randomuser.me/api/portraits/women/54.jpg', 'interests': ['Reading', 'Art', 'Coffee', 'Music']},
+    {'name': 'Rukhsar', 'age': 20, 'city': 'Lucknow', 'bio': 'Kebab connoisseur 🍢', 'avatar': 'https://randomuser.me/api/portraits/women/55.jpg', 'interests': ['Cooking', 'Travel', 'Photography', 'Dance']},
+    // Noida
+    {'name': 'Shivani', 'age': 22, 'city': 'Noida', 'bio': 'Mall rat 🛍️', 'avatar': 'https://randomuser.me/api/portraits/women/56.jpg', 'interests': ['Fashion', 'Travel', 'Coffee', 'Photography']},
+    {'name': 'Monika', 'age': 23, 'city': 'Noida', 'bio': 'Gym is my temple 🏋️', 'avatar': 'https://randomuser.me/api/portraits/women/57.jpg', 'interests': ['Fitness', 'Travel', 'Cooking', 'Music']},
+    {'name': 'Pooja', 'age': 25, 'city': 'Noida', 'bio': 'Startup hustle 💪', 'avatar': 'https://randomuser.me/api/portraits/women/58.jpg', 'interests': ['Tech', 'Coffee', 'Travel', 'Reading']},
+    {'name': 'Richa', 'age': 21, 'city': 'Noida', 'bio': 'Movie buff 🎬', 'avatar': 'https://randomuser.me/api/portraits/women/59.jpg', 'interests': ['Movies', 'Music', 'Travel', 'Cooking']},
+    {'name': 'Nupur', 'age': 24, 'city': 'Noida', 'bio': 'Bookworm & chai lover ☕', 'avatar': 'https://randomuser.me/api/portraits/women/60.jpg', 'interests': ['Reading', 'Coffee', 'Travel', 'Art']},
+    // Indore
+    {'name': 'Khushi', 'age': 22, 'city': 'Indore', 'bio': 'Poha & jalebi lover 🍩', 'avatar': 'https://randomuser.me/api/portraits/women/61.jpg', 'interests': ['Cooking', 'Travel', 'Music', 'Dance']},
+    {'name': 'Muskan', 'age': 21, 'city': 'Indore', 'bio': 'Street food explorer 🍢', 'avatar': 'https://randomuser.me/api/portraits/women/62.jpg', 'interests': ['Cooking', 'Photography', 'Travel', 'Music']},
+    {'name': 'Twinkle', 'age': 23, 'city': 'Indore', 'bio': 'Sarafa bazaar lover 🌙', 'avatar': 'https://randomuser.me/api/portraits/women/63.jpg', 'interests': ['Cooking', 'Travel', 'Fashion', 'Photography']},
+    {'name': 'Chhavi', 'age': 20, 'city': 'Indore', 'bio': 'Dance is my oxygen 💃', 'avatar': 'https://randomuser.me/api/portraits/women/64.jpg', 'interests': ['Dance', 'Music', 'Fitness', 'Travel']},
+    {'name': 'Anju', 'age': 24, 'city': 'Indore', 'bio': 'Rajwada vibes 🏛️', 'avatar': 'https://randomuser.me/api/portraits/women/65.jpg', 'interests': ['Travel', 'History', 'Photography', 'Art']},
+    // Bhopal
+    {'name': 'Kajal', 'age': 22, 'city': 'Bhopal', 'bio': 'Lake city girl 🌊', 'avatar': 'https://randomuser.me/api/portraits/women/66.jpg', 'interests': ['Travel', 'Photography', 'Nature', 'Yoga']},
+    {'name': 'Pinky', 'age': 23, 'city': 'Bhopal', 'bio': 'Bhutta lover in rains 🌽', 'avatar': 'https://randomuser.me/api/portraits/women/67.jpg', 'interests': ['Cooking', 'Travel', 'Music', 'Nature']},
+    {'name': 'Seema', 'age': 21, 'city': 'Bhopal', 'bio': 'Van Vihar visitor 🦌', 'avatar': 'https://randomuser.me/api/portraits/women/68.jpg', 'interests': ['Nature', 'Travel', 'Photography', 'Yoga']},
+    {'name': 'Rekha', 'age': 24, 'city': 'Bhopal', 'bio': 'Sanchi stupa lover 🏛️', 'avatar': 'https://randomuser.me/api/portraits/women/69.jpg', 'interests': ['Travel', 'History', 'Art', 'Photography']},
+    {'name': 'Sunita', 'age': 20, 'city': 'Bhopal', 'bio': 'Simple girl with big dreams ✨', 'avatar': 'https://randomuser.me/api/portraits/women/70.jpg', 'interests': ['Reading', 'Music', 'Travel', 'Coffee']},
+    // Amritsar
+    {'name': 'Harman', 'age': 22, 'city': 'Amritsar', 'bio': 'Golden Temple lover 🙏', 'avatar': 'https://randomuser.me/api/portraits/women/71.jpg', 'interests': ['Travel', 'Photography', 'Cooking', 'Music']},
+    {'name': 'Navjot', 'age': 23, 'city': 'Amritsar', 'bio': 'Amritsari kulcha fan 🫓', 'avatar': 'https://randomuser.me/api/portraits/women/72.jpg', 'interests': ['Cooking', 'Travel', 'Dance', 'Music']},
+    {'name': 'Prabhjot', 'age': 21, 'city': 'Amritsar', 'bio': 'Wagah border visitor 🇮🇳', 'avatar': 'https://randomuser.me/api/portraits/women/73.jpg', 'interests': ['Travel', 'Photography', 'History', 'Fitness']},
+    {'name': 'Gurpreet', 'age': 24, 'city': 'Amritsar', 'bio': 'Langar seva lover 🙏', 'avatar': 'https://randomuser.me/api/portraits/women/74.jpg', 'interests': ['Travel', 'Cooking', 'Music', 'Yoga']},
+    {'name': 'Amrit', 'age': 20, 'city': 'Amritsar', 'bio': 'Punjabi pop lover 🎵', 'avatar': 'https://randomuser.me/api/portraits/women/75.jpg', 'interests': ['Music', 'Dance', 'Travel', 'Fitness']},
+    // Nagpur
+    {'name': 'Durga', 'age': 22, 'city': 'Nagpur', 'bio': 'Orange city girl 🍊', 'avatar': 'https://randomuser.me/api/portraits/women/76.jpg', 'interests': ['Travel', 'Cooking', 'Music', 'Photography']},
+    {'name': 'Vaishnavi', 'age': 23, 'city': 'Nagpur', 'bio': 'Samosa lover 🥟', 'avatar': 'https://randomuser.me/api/portraits/women/77.jpg', 'interests': ['Cooking', 'Travel', 'Dance', 'Music']},
+    {'name': 'Sai', 'age': 21, 'city': 'Nagpur', 'bio': 'Ambazari lake lover 🌅', 'avatar': 'https://randomuser.me/api/portraits/women/78.jpg', 'interests': ['Nature', 'Travel', 'Photography', 'Yoga']},
+    {'name': 'Trupti', 'age': 24, 'city': 'Nagpur', 'bio': 'Vidarbha food explorer 🍛', 'avatar': 'https://randomuser.me/api/portraits/women/79.jpg', 'interests': ['Cooking', 'Travel', 'Photography', 'Art']},
+    {'name': 'Aarti', 'age': 20, 'city': 'Nagpur', 'bio': 'Tarri poha lover 🍚', 'avatar': 'https://randomuser.me/api/portraits/women/80.jpg', 'interests': ['Cooking', 'Music', 'Travel', 'Dance']},
+    // Visakhapatnam
+    {'name': 'Lakshmi', 'age': 22, 'city': 'Vizag', 'bio': 'Beach baby 🏖️', 'avatar': 'https://randomuser.me/api/portraits/women/81.jpg', 'interests': ['Travel', 'Photography', 'Nature', 'Dance']},
+    {'name': 'Satya', 'age': 23, 'city': 'Vizag', 'bio': 'Araku valley lover ⛰️', 'avatar': 'https://randomuser.me/api/portraits/women/82.jpg', 'interests': ['Travel', 'Nature', 'Photography', 'Cooking']},
+    {'name': 'Siri', 'age': 21, 'city': 'Vizag', 'bio': 'Submarine museum visitor 🚢', 'avatar': 'https://randomuser.me/api/portraits/women/83.jpg', 'interests': ['Travel', 'History', 'Photography', 'Art']},
+    {'name': 'Harika', 'age': 24, 'city': 'Vizag', 'bio': 'Kailasagiri hill lover ⛰️', 'avatar': 'https://randomuser.me/api/portraits/women/84.jpg', 'interests': ['Nature', 'Travel', 'Yoga', 'Photography']},
+    {'name': 'Bhavani', 'age': 20, 'city': 'Vizag', 'bio': 'Rushikonda surfer 🏄', 'avatar': 'https://randomuser.me/api/portraits/women/85.jpg', 'interests': ['Sports', 'Travel', 'Nature', 'Fitness']},
+    // Kochi
+    {'name': 'Mariya', 'age': 22, 'city': 'Kochi', 'bio': 'Backwater lover 🚣', 'avatar': 'https://randomuser.me/api/portraits/women/86.jpg', 'interests': ['Travel', 'Nature', 'Photography', 'Cooking']},
+    {'name': 'Anu', 'age': 23, 'city': 'Kochi', 'bio': 'Kathakali admirer 💃', 'avatar': 'https://randomuser.me/api/portraits/women/87.jpg', 'interests': ['Dance', 'Art', 'Music', 'Travel']},
+    {'name': 'Nimmy', 'age': 21, 'city': 'Kochi', 'bio': 'Fish curry lover 🐟', 'avatar': 'https://randomuser.me/api/portraits/women/88.jpg', 'interests': ['Cooking', 'Travel', 'Nature', 'Photography']},
+    {'name': 'Sneha', 'age': 24, 'city': 'Kochi', 'bio': 'Fort Kochi explorer 🏛️', 'avatar': 'https://randomuser.me/api/portraits/women/89.jpg', 'interests': ['Travel', 'History', 'Photography', 'Art']},
+    {'name': 'Divya', 'age': 20, 'city': 'Kochi', 'bio': 'Munnar tea lover 🍵', 'avatar': 'https://randomuser.me/api/portraits/women/90.jpg', 'interests': ['Travel', 'Nature', 'Coffee', 'Photography']},
+    // Guwahati
+    {'name': 'Juri', 'age': 22, 'city': 'Guwahati', 'bio': 'Brahmaputra lover 🌊', 'avatar': 'https://randomuser.me/api/portraits/women/91.jpg', 'interests': ['Travel', 'Nature', 'Photography', 'Music']},
+    {'name': 'Mandira', 'age': 23, 'city': 'Guwahati', 'bio': 'Assam tea garden girl 🍵', 'avatar': 'https://randomuser.me/api/portraits/women/92.jpg', 'interests': ['Travel', 'Nature', 'Cooking', 'Photography']},
+    {'name': 'Bornali', 'age': 21, 'city': 'Guwahati', 'bio': 'Bihu dancer 💃', 'avatar': 'https://randomuser.me/api/portraits/women/93.jpg', 'interests': ['Dance', 'Music', 'Travel', 'Cooking']},
+    {'name': 'Rima', 'age': 24, 'city': 'Guwahati', 'bio': 'Kamakhya temple devotee 🙏', 'avatar': 'https://randomuser.me/api/portraits/women/94.jpg', 'interests': ['Travel', 'Photography', 'Yoga', 'Nature']},
+    {'name': 'Dipika', 'age': 20, 'city': 'Guwahati', 'bio': 'Northeast explorer 🏔️', 'avatar': 'https://randomuser.me/api/portraits/women/95.jpg', 'interests': ['Travel', 'Nature', 'Photography', 'Fitness']},
+    // Chandigarh (extra)
+    {'name': 'Arshpreet', 'age': 22, 'city': 'Chandigarh', 'bio': 'Sector 17 shopper 🛍️', 'avatar': 'https://randomuser.me/api/portraits/women/96.jpg', 'interests': ['Fashion', 'Travel', 'Coffee', 'Photography']},
+    {'name': 'Lovepreet', 'age': 23, 'city': 'Chandigarh', 'bio': 'Sukhna lake lover 🌅', 'avatar': 'https://randomuser.me/api/portraits/women/97.jpg', 'interests': ['Nature', 'Travel', 'Photography', 'Yoga']},
+    {'name': 'Gagandeep', 'age': 21, 'city': 'Chandigarh', 'bio': 'Chole bhature lover 🍛', 'avatar': 'https://randomuser.me/api/portraits/women/98.jpg', 'interests': ['Cooking', 'Travel', 'Dance', 'Music']},
+    {'name': 'Manjot', 'age': 24, 'city': 'Chandigarh', 'bio': 'Rose garden visitor 🌹', 'avatar': 'https://randomuser.me/api/portraits/women/99.jpg', 'interests': ['Nature', 'Travel', 'Photography', 'Art']},
+    {'name': 'Prabhnoor', 'age': 20, 'city': 'Chandigarh', 'bio': 'Punjabi mundi 🌟', 'avatar': 'https://randomuser.me/api/portraits/women/100.jpg', 'interests': ['Dance', 'Music', 'Fitness', 'Travel']},
+    // Extra diverse
+    {'name': 'Kiara', 'age': 22, 'city': 'Goa', 'bio': 'Beach party queen 🎉', 'avatar': 'https://randomuser.me/api/portraits/women/41.jpg', 'interests': ['Travel', 'Dance', 'Music', 'Photography']},
+    {'name': 'Alia', 'age': 23, 'city': 'Shimla', 'bio': 'Mountain child 🏔️', 'avatar': 'https://randomuser.me/api/portraits/women/42.jpg', 'interests': ['Travel', 'Nature', 'Photography', 'Yoga']},
+    {'name': 'Sara', 'age': 21, 'city': 'Udaipur', 'bio': 'Lake city princess 👑', 'avatar': 'https://randomuser.me/api/portraits/women/43.jpg', 'interests': ['Travel', 'History', 'Photography', 'Art']},
+    {'name': 'Myra', 'age': 24, 'city': 'Manali', 'bio': 'Snow lover ❄️', 'avatar': 'https://randomuser.me/api/portraits/women/44.jpg', 'interests': ['Travel', 'Nature', 'Fitness', 'Photography']},
+    {'name': 'Zoya', 'age': 20, 'city': 'Darjeeling', 'bio': 'Tea & mountains 🍵', 'avatar': 'https://randomuser.me/api/portraits/women/45.jpg', 'interests': ['Travel', 'Nature', 'Coffee', 'Photography']},
   ];
 
-  // ─── Chat Responses ─────────────────────────────────────────
+  // ─── Chat Responses (more scripts for variety) ──────────────
   static final List<List<String>> _chatScripts = [
     // Script 1 — Friendly
     [
@@ -198,6 +204,45 @@ class BotService {
       "I know all the best spots 😎",
       "It's a date then! 😉",
     ],
+    // Script 6 — Hindi mix
+    [
+      "Hii! Kaise ho? 😊",
+      "Main bhi achhi hoon!",
+      "Tum kahan se ho?",
+      "Oh wow, mujhe bhi wahan jaana hai!",
+      "Tumhari smile bahut pyaari hai 🥰",
+      "Sachchi? Thank you!",
+      "Kya karte ho free time mein?",
+      "Oh nice! Mujhe bhi pasand hai",
+      "Kabhi milte hain coffee pe ☕",
+      "Haan bilkul! Pakka 💕",
+    ],
+    // Script 7 — Sweet
+    [
+      "Hey there! 🌸",
+      "You seem really nice!",
+      "I love your profile btw",
+      "Haha thank you!",
+      "What kind of music do you listen to?",
+      "Oh same! I love that artist",
+      "We have so much in common!",
+      "I know right! It's destiny 😄",
+      "Tell me something about yourself",
+      "That's so cool! I'm impressed ✨",
+    ],
+    // Script 8 — Playful
+    [
+      "Knock knock! 😂",
+      "Haha who's there?",
+      "Your future bestie! 👯",
+      "Omg that's so cute 😂",
+      "I'm bored, entertain me!",
+      "Haha challenge accepted!",
+      "You're actually funny!",
+      "I know right? 😎",
+      "Let's play 20 questions!",
+      "Okay you go first! 🎯",
+    ],
   ];
 
   // ─── Get a random bot profile ───────────────────────────────
@@ -205,7 +250,7 @@ class BotService {
     final bot = Map<String, dynamic>.from(
       _botProfiles[_random.nextInt(_botProfiles.length)],
     );
-    bot['uid'] = 'bot_${DateTime.now().millisecondsSinceEpoch}';
+    bot['uid'] = 'bot_${DateTime.now().millisecondsSinceEpoch}_${_random.nextInt(9999)}';
     bot['isBot'] = true;
     return bot;
   }
@@ -224,7 +269,7 @@ class BotService {
 
   // ─── Simulate call duration before "disconnect" ─────────────
   static Duration getCallDuration() {
-    return Duration(seconds: 15 + _random.nextInt(45));
+    return Duration(seconds: 20 + _random.nextInt(40));
   }
 
   // ─── Get "next bot" after skip ──────────────────────────────
@@ -236,23 +281,31 @@ class BotService {
     final bot = Map<String, dynamic>.from(
       available[_random.nextInt(available.length)],
     );
-    bot['uid'] = 'bot_${DateTime.now().millisecondsSinceEpoch}';
+    bot['uid'] = 'bot_${DateTime.now().millisecondsSinceEpoch}_${_random.nextInt(9999)}';
     bot['isBot'] = true;
     return bot;
   }
 
   // ─── Simulate "online" users count ──────────────────────────
   static int getSimulatedOnlineCount() {
-    // Random between 30-150 to make it feel alive
-    return 30 + _random.nextInt(120);
+    return 50 + _random.nextInt(150);
   }
 
   // ─── Bot reaction messages (during call) ────────────────────
   static final List<String> _reactions = [
     "😂", "😊", "❤️", "😍", "🥰", "✨", "💕", "😘", "🙈", "🎉",
+    "🔥", "💯", "😘", "🥰", "💖",
   ];
 
   static String getRandomReaction() {
     return _reactions[_random.nextInt(_reactions.length)];
   }
+
+  // ─── Get bot by index (for home screen display) ─────────────
+  static Map<String, dynamic> getBotByIndex(int index) {
+    return _botProfiles[index % _botProfiles.length];
+  }
+
+  // ─── Get total bot count ────────────────────────────────────
+  static int get botCount => _botProfiles.length;
 }

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/online_avatar.dart';
+import '../../../../shared/services/bot_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -352,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Online Users
+            // Online Users (using bot profiles with real photos)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
@@ -364,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => context.push('/matching'),
                       child: const Text('See All', style: TextStyle(color: AppColors.neonPink)),
                     ),
                   ],
@@ -377,13 +378,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: 6,
+                  itemCount: 10,
                   itemBuilder: (context, index) {
-                    final names = ['Sophia', 'James', 'Olivia', 'Lucas', 'Emma', 'Aiden'];
-                    final ages = [23, 25, 21, 27, 24, 26];
+                    final bot = BotService.getBotByIndex(index);
                     return _buildOnlineUserCard(
-                      names[index],
-                      ages[index],
+                      bot['name'],
+                      bot['age'],
+                      bot['avatar'],
+                      bot['city'],
                       index,
                     );
                   },
@@ -391,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ).animate().fadeIn(delay: 400.ms),
             ),
 
-            // Trending Profiles
+            // Trending Profiles (using bot profiles with real photos)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
@@ -403,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => context.push('/dating'),
                       child: const Text('See All', style: TextStyle(color: AppColors.neonPink)),
                     ),
                   ],
@@ -421,9 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final names = ['Isabella', 'Mason', 'Charlotte', 'Ethan', 'Amelia', 'Logan'];
-                    final ages = [22, 24, 23, 26, 21, 25];
-                    return _buildTrendingCard(names[index], ages[index], index);
+                    final bot = BotService.getBotByIndex(index + 10);
+                    return _buildTrendingCard(bot['name'], bot['age'], bot['avatar'], bot['city'], index);
                   },
                   childCount: 6,
                 ),
@@ -571,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildOnlineUserCard(String name, int age, int index) {
+  Widget _buildOnlineUserCard(String name, int age, String avatar, String city, int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
@@ -594,23 +595,26 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 flex: 3,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryPurple.withOpacity(0.3),
-                        AppColors.neonPink.withOpacity(0.2),
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Center(
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: 50,
-                          color: Colors.white.withOpacity(0.3),
+                      Image.network(
+                        avatar,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primaryPurple.withOpacity(0.3),
+                                AppColors.neonPink.withOpacity(0.2),
+                              ],
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(Icons.person_rounded, size: 50, color: Colors.white.withOpacity(0.3)),
+                          ),
                         ),
                       ),
                       Positioned(
@@ -645,7 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '2 km away',
+                        city,
                         style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.4)),
                       ),
                     ],
@@ -659,102 +663,112 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTrendingCard(String name, int age, int index) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.cardBackground, AppColors.surfaceColor.withOpacity(0.5)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+  Widget _buildTrendingCard(String name, int age, String avatar, String city, int index) {
+    return GestureDetector(
+      onTap: () => context.push('/matching'),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.cardBackground, AppColors.surfaceColor.withOpacity(0.5)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryPurple.withOpacity(0.2),
-                    AppColors.neonPink.withOpacity(0.15),
-                  ],
-                ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(Icons.person_rounded, size: 60, color: Colors.white.withOpacity(0.2)),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.favorite_rounded, color: AppColors.neonPink, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${(index + 1) * 120}',
-                            style: const TextStyle(fontSize: 12, color: Colors.white),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      avatar,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primaryPurple.withOpacity(0.2),
+                              AppColors.neonPink.withOpacity(0.15),
+                            ],
                           ),
-                        ],
+                        ),
+                        child: Center(
+                          child: Icon(Icons.person_rounded, size: 60, color: Colors.white.withOpacity(0.2)),
+                        ),
                       ),
                     ),
-                  ),
-                  if (index < 2)
                     Positioned(
-                      top: 8,
+                      bottom: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: AppColors.premiumGradient),
-                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text('VIP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.favorite_rounded, color: AppColors.neonPink, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(index + 1) * 120}',
+                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    if (index < 2)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: AppColors.premiumGradient),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text('VIP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$name, $age',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        const SizedBox(height: 2),
+                        Text(city,
+                            style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.4))),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: AppColors.primaryGradient),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 16),
+                  ),
                 ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('$name, $age',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text('${index + 1} km away',
-                          style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.4))),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: AppColors.primaryGradient),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

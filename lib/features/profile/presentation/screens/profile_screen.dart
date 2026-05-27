@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../shared/services/firestore_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -56,7 +55,12 @@ class ProfileScreen extends StatelessWidget {
                       icon: const Icon(Icons.edit_rounded, size: 24),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Settings coming soon!'), backgroundColor: AppColors.primaryPurple),
+                        );
+                      },
                       icon: const Icon(Icons.settings_rounded, size: 24),
                     ),
                   ],
@@ -273,9 +277,34 @@ class ProfileScreen extends StatelessWidget {
                         _buildMenuItem(Icons.diamond_rounded, 'Go Premium', 'Unlock all features', AppColors.coinGold, () => context.push('/premium')),
                         _buildMenuItem(Icons.account_balance_wallet_rounded, 'Wallet', '$coins coins remaining', AppColors.diamondBlue, () => context.push('/wallet')),
                         _buildMenuItem(Icons.notifications_rounded, 'Notifications', 'View notifications', AppColors.neonPink, () => context.push('/notifications')),
-                        _buildMenuItem(Icons.shield_rounded, 'Safety Center', 'Manage your safety', AppColors.successGreen, () {}),
-                        _buildMenuItem(Icons.help_rounded, 'Help & Support', 'Get help', AppColors.primaryPurple, () {}),
-                        _buildMenuItem(Icons.info_outline_rounded, 'About', 'Version 1.0.0', Colors.white38, () {}),
+                        _buildMenuItem(Icons.shield_rounded, 'Safety Center', 'Manage your safety', AppColors.successGreen, () {
+                          HapticFeedback.lightImpact();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Safety Center coming soon!'), backgroundColor: AppColors.successGreen),
+                          );
+                        }),
+                        _buildMenuItem(Icons.help_rounded, 'Help & Support', 'Get help', AppColors.primaryPurple, () {
+                          HapticFeedback.lightImpact();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Help & Support coming soon!'), backgroundColor: AppColors.primaryPurple),
+                          );
+                        }),
+                        _buildMenuItem(Icons.info_outline_rounded, 'About', 'Version 1.0.0', Colors.white38, () {
+                          HapticFeedback.lightImpact();
+                          showAboutDialog(
+                            context: context,
+                            applicationName: 'VibeCall',
+                            applicationVersion: '1.0.0',
+                            applicationIcon: Container(
+                              width: 50, height: 50,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(colors: AppColors.primaryGradient),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.videocam_rounded, color: Colors.white, size: 28),
+                            ),
+                          );
+                        }),
                         const SizedBox(height: 12),
                         _buildMenuItem(Icons.logout_rounded, 'Logout', '', AppColors.errorRed, () async {
                           await FirebaseAuth.instance.signOut();

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/services/firestore_service.dart';
+import '../../../../shared/services/bot_service.dart';
 
 class DatingScreen extends StatefulWidget {
   const DatingScreen({super.key});
@@ -46,17 +47,39 @@ class _DatingScreenState extends State<DatingScreen>
       }
 
       final users = await _firestoreService.getDiscoverUsers(limit: 20);
+
+      // If no real users, use bot profiles
+      List<Map<String, dynamic>> allProfiles = users;
+      if (allProfiles.isEmpty) {
+        allProfiles = List.generate(20, (i) {
+          final bot = BotService.getBotByIndex(i);
+          bot['uid'] = 'bot_discover_$i';
+          return bot;
+        });
+      }
+
       if (mounted) {
         setState(() {
-          _profiles = users;
+          _profiles = allProfiles;
           _isLoading = false;
           _currentIndex = 0;
-          _noMoreProfiles = users.isEmpty;
+          _noMoreProfiles = false;
         });
       }
     } catch (e) {
+      // On error, use bot profiles
+      final botProfiles = List.generate(20, (i) {
+        final bot = BotService.getBotByIndex(i);
+        bot['uid'] = 'bot_discover_$i';
+        return bot;
+      });
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _profiles = botProfiles;
+          _isLoading = false;
+          _currentIndex = 0;
+          _noMoreProfiles = false;
+        });
       }
     }
   }
@@ -82,13 +105,19 @@ class _DatingScreenState extends State<DatingScreen>
 
     final profile = _profiles[_currentIndex];
     final targetUid = profile['uid'] ?? '';
+    final isBot = targetUid.toString().startsWith('bot_');
 
     if (isLike && targetUid.isNotEmpty) {
-      final isMatch = await _firestoreService.likeUser(targetUid);
-      if (isMatch && mounted) {
-        _showMatchPopup(profile);
+      if (isBot) {
+        // Bot always "matches" — show match popup
+        if (mounted) _showMatchPopup(profile);
+      } else {
+        final isMatch = await _firestoreService.likeUser(targetUid);
+        if (isMatch && mounted) {
+          _showMatchPopup(profile);
+        }
       }
-    } else if (targetUid.isNotEmpty) {
+    } else if (targetUid.isNotEmpty && !isBot) {
       await _firestoreService.dislikeUser(targetUid);
     }
 
@@ -99,7 +128,8 @@ class _DatingScreenState extends State<DatingScreen>
         if (_currentIndex < _profiles.length - 1) {
           _currentIndex++;
         } else {
-          _noMoreProfiles = true;
+          // Reload with more profiles
+          _loadProfiles();
         }
       });
     }
@@ -182,17 +212,30 @@ class _DatingScreenState extends State<DatingScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        // Navigate to chat or matching for video call
+                        final targetUid = profile['uid'] ?? '';
+                        if (targetUid.toString().startsWith('bot_')) {
+                          // Bot — go to video call with bot
+                          context.push('/matching');
+                        } else {
+                          // Real user — go to chat
+                          context.push('/chats');
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(colors: AppColors.primaryGradient),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'Send Message',
-                            style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                            (profile['uid'] ?? '').toString().startsWith('bot_')
+                                ? 'Video Call'
+                                : 'Send Message',
+                            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                         ),
                       ),
